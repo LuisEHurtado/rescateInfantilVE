@@ -1388,13 +1388,13 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
           </div>
 
           {/* ── Contactos familiares ── */}
-          {child.familyMembers?.length > 0 && (
+          {child.familyMembers?.filter((fm: any) => fm.fullName)?.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <Phone size={11} /> Contactos registrados
               </p>
               <div className="space-y-2">
-                {child.familyMembers.map((fm: any) => (
+                {child.familyMembers.filter((fm: any) => fm.fullName).map((fm: any) => (
                   <div key={fm.id} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50">
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#eff6ff' }}>
                       <User size={13} style={{ color: D.blue }} />
