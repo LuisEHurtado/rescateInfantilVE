@@ -66,6 +66,7 @@ const statusMap: Record<string, { label: string; cls: string }> = {
   IN_OBSERVATION:   { label: 'En observación',    cls: 'bg-purple-100 text-purple-700' },
   TRANSFERRED:      { label: 'Trasladado',        cls: 'bg-cyan-100 text-cyan-700' },
   REUNIFIED:        { label: 'Reunificado',       cls: 'bg-green-100 text-green-700' },
+  MISSING:          { label: 'Desaparecido',      cls: 'bg-red-100 text-red-700' },
   DECEASED:         { label: 'Fallecido',         cls: 'bg-red-100 text-red-700' },
 };
 const sexLabel: Record<string, string> = {
@@ -80,6 +81,7 @@ const STATUS_DOT: Record<string, string> = {
   IN_OBSERVATION:   '#a855f7',
   TRANSFERRED:      '#06b6d4',
   REUNIFIED:        '#22c55e',
+  MISSING:          '#dc2626',
   DECEASED:         '#ef4444',
 };
 
@@ -413,6 +415,7 @@ export function PublicHomePage() {
                   <label className="text-xs font-medium text-gray-500 block mb-1.5">Estado actual</label>
                   <select {...register('caseStatus')} className={fSelect}>
                     <option value="UNIDENTIFIED">Sin identificar</option>
+                    <option value="MISSING">Desaparecido/a</option>
                     <option value="PARTIAL_IDENTITY">Identidad parcial</option>
                     <option value="IDENTIFIED">Identificado/a</option>
                     <option value="HOSPITALIZED">Hospitalizado/a</option>
@@ -944,6 +947,7 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
                   <option value="IN_OBSERVATION">👁️ En observación médica</option>
                   <option value="TRANSFERRED">🚑 Trasladado/a a otro centro</option>
                   <option value="PARTIAL_IDENTITY">🔎 Identidad parcial confirmada</option>
+                  <option value="MISSING">🔴 Desaparecido/a — sin ubicación conocida</option>
                 </select>
                 <textarea value={confirmNotes} onChange={e => setConfirmNotes(e.target.value)} rows={2}
                   placeholder="Información adicional (opcional): hospital, nombre confirmado, familiar que lo reclamó..."
