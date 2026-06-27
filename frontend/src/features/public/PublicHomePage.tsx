@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
+import imageCompression from 'browser-image-compression';
 import api from '../../api/client';
 import { searchApi } from '../../api/endpoints/search';
 import { childrenApi } from '../../api/endpoints/children';
@@ -111,14 +112,17 @@ export function PublicHomePage() {
   const [searchState, setSearchState] = useState('');
   const [searchMunicipality, setSearchMunicipality] = useState('');
   const [searchParams, setSearchParams] = useState<any>({ page: 1, limit: 20 });
+  const [allResults, setAllResults] = useState<any[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [reportCaseType, setReportCaseType] = useState<'RESCUED' | 'LOST' | 'HOSPITAL' | 'UNIDENTIFIED'>('RESCUED');
   const [contacts, setContacts] = useState<ContactEntry[]>([emptyContact()]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [compressing, setCompressing] = useState(false);
   const [registered, setRegistered] = useState<{ code: string; id: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: searchData, isLoading: searching, isFetching } = useQuery({
     queryKey: ['public-search', searchParams],
@@ -128,9 +132,19 @@ export function PublicHomePage() {
 
   const { data: stats } = useQuery({
     queryKey: ['public-stats'],
-    queryFn: () => searchApi.search({ page: 1, limit: 1 }),
+    queryFn: () => searchApi.stats(),
     refetchInterval: 30000,
   });
+
+  // Acumular resultados para "cargar más"
+  useEffect(() => {
+    if (!searchData?.data) return;
+    if (searchParams.page === 1) {
+      setAllResults(searchData.data);
+    } else {
+      setAllResults(prev => [...prev, ...searchData.data]);
+    }
+  }, [searchData]);
 
   const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
@@ -150,19 +164,46 @@ export function PublicHomePage() {
     });
   }, [query, searchState, searchMunicipality, statusFilter]);
 
+  // Debounce en el input — busca automáticamente 600ms después de dejar de escribir
+  const handleQueryChange = (val: string) => {
+    setQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchParams((prev: any) => ({ ...prev, q: val || undefined, page: 1 }));
+    }, 600);
+  };
+
   const handleStatusFilter = useCallback((status: string) => {
     setStatusFilter(status);
     setSearchParams((prev: any) => ({ ...prev, caseStatus: status || undefined, page: 1 }));
   }, []);
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const loadMore = () => {
+    setSearchParams((prev: any) => ({ ...prev, page: (prev.page || 1) + 1 }));
+  };
+
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPhotoFile(file);
-    new FileReader().onload = ev => setPhotoPreview(ev.target?.result as string);
-    const r = new FileReader();
-    r.onload = ev => setPhotoPreview(ev.target?.result as string);
-    r.readAsDataURL(file);
+    setCompressing(true);
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      });
+      setPhotoFile(compressed);
+      const r = new FileReader();
+      r.onload = ev => setPhotoPreview(ev.target?.result as string);
+      r.readAsDataURL(compressed);
+    } catch {
+      setPhotoFile(file);
+      const r = new FileReader();
+      r.onload = ev => setPhotoPreview(ev.target?.result as string);
+      r.readAsDataURL(file);
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const updateContact = (i: number, field: keyof ContactEntry, val: string) =>
@@ -186,7 +227,8 @@ export function PublicHomePage() {
         const fd = new window.FormData();
         fd.append('photo', photoFile);
         fd.append('description', 'Foto principal');
-        try { await fetch(`/api/children/${child.id}/photos`, { method: 'POST', body: fd }); } catch (_) {}
+        const res = await fetch(`/api/children/${child.id}/photos`, { method: 'POST', body: fd });
+        if (!res.ok) toast.error('El niño se registró pero la foto no se pudo subir. Puedes agregarla luego.');
       }
       setRegistered({ code: child.code, id: child.id });
       setMode('success');
@@ -313,7 +355,12 @@ export function PublicHomePage() {
             {/* ── 3. Foto ── */}
             <FCard icon={<Camera size={17} style={{ color: '#0891b2' }} />} title="Fotografía del niño/a">
               <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
-              {photoPreview ? (
+              {compressing ? (
+                <div className="w-full flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-blue-200 rounded-2xl bg-blue-50">
+                  <span className="w-8 h-8 border-3 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-blue-500 font-medium">Optimizando imagen...</p>
+                </div>
+              ) : photoPreview ? (
                 <div className="flex items-center gap-4">
                   <div className="w-28 h-28 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-green-200">
                     <img src={photoPreview} className="w-full h-full object-cover" alt="preview" />
@@ -333,7 +380,7 @@ export function PublicHomePage() {
                   </div>
                 </div>
               ) : (
-                <button type="button" onClick={() => fileRef.current?.click()}
+                <button type="button" onClick={() => !compressing && fileRef.current?.click()}
                   className="w-full flex flex-col items-center justify-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-400 hover:bg-blue-50 transition-all group">
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gray-100 group-hover:bg-blue-100 transition-all">
                     <Camera size={26} className="text-gray-300 group-hover:text-blue-400 transition-all" />
@@ -469,9 +516,11 @@ export function PublicHomePage() {
   }
 
   // ── Search / Home ─────────────────────────────────────────────────
-  const total = stats?.total ?? 0;
-  const results = searchData?.data ?? [];
+  const total        = stats?.total        ?? 0;
+  const hospitalized = stats?.hospitalized ?? 0;
+  const reunified    = stats?.reunified    ?? 0;
   const hasActiveSearch = !!(searchParams.q || searchParams.state || searchParams.caseStatus);
+  const hasMore = searchData ? allResults.length < searchData.total : false;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: D.light }}>
@@ -503,9 +552,9 @@ export function PublicHomePage() {
             {/* Stats inline */}
             <div className="flex gap-6 sm:gap-8">
               {[
-                { n: total,  label: 'Registrados',    color: D.sky },
-                { n: 0,      label: 'Hospitalizados', color: '#fdba74' },
-                { n: 0,      label: 'Reunificados',   color: '#86efac' },
+                { n: total,        label: 'Registrados',    color: D.sky },
+                { n: hospitalized, label: 'Hospitalizados', color: '#fdba74' },
+                { n: reunified,    label: 'Reunificados',   color: '#86efac' },
               ].map(({ n, label, color }) => (
                 <div key={label} className="text-center">
                   <p className="text-2xl font-black" style={{ color }}>{n}</p>
@@ -522,7 +571,7 @@ export function PublicHomePage() {
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
               <input type="text" placeholder="Buscar por código, nombre o cédula..."
                 value={query}
-                onChange={e => setQuery(e.target.value)}
+                onChange={e => handleQueryChange(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 className="w-full pl-10 pr-4 py-3 bg-white/10 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:bg-white/20 transition-all"
               />
@@ -597,19 +646,32 @@ export function PublicHomePage() {
 
         {/* Grid de resultados */}
         <div className="min-h-[420px]">
-          {searching ? (
+          {searching && searchParams.page === 1 ? (
             <div className="flex justify-center py-20">
               <span className="w-9 h-9 border-4 border-t-transparent rounded-full animate-spin"
                 style={{ borderColor: `${D.blue} transparent transparent transparent` }} />
             </div>
-          ) : results.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {results.map((child: any) => (
-                <ChildGridCard key={child.id} child={child}
-                  selected={expandedId === child.id}
-                  onClick={() => setExpandedId(expandedId === child.id ? null : child.id)} />
-              ))}
-            </div>
+          ) : allResults.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {allResults.map((child: any) => (
+                  <ChildGridCard key={child.id} child={child}
+                    selected={expandedId === child.id}
+                    onClick={() => setExpandedId(expandedId === child.id ? null : child.id)} />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="flex justify-center mt-6">
+                  <button onClick={loadMore} disabled={isFetching}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm border-2 border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-all disabled:opacity-50">
+                    {isFetching
+                      ? <><span className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /> Cargando...</>
+                      : <>Cargar más <span className="text-gray-400">({allResults.length} de {searchData?.total})</span></>
+                    }
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#eff6ff' }}>
@@ -634,7 +696,7 @@ export function PublicHomePage() {
 
         {/* Modal */}
         {expandedId && (() => {
-          const selected = results.find((c: any) => c.id === expandedId);
+          const selected = allResults.find((c: any) => c.id === expandedId);
           return selected ? <ChildModal child={selected} onClose={() => setExpandedId(null)} /> : null;
         })()}
       </div>
@@ -983,11 +1045,17 @@ function ChildGridCard({ child, selected, onClick }: { child: any; selected: boo
             <MapPin size={9} className="flex-shrink-0" /> {location}
           </p>
         )}
-        {dateStr && (
-          <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-            <Calendar size={9} className="flex-shrink-0" /> {dateStr}
-          </p>
-        )}
+        {/* Código con botón copiar */}
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(child.code);
+            toast.success('Código copiado');
+          }}
+          className="mt-1.5 flex items-center gap-1 text-xs font-mono text-gray-400 hover:text-blue-500 transition-colors group w-full">
+          <span className="truncate">{child.code}</span>
+          <Copy size={9} className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
       </div>
     </div>
   );

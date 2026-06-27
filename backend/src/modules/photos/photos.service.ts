@@ -15,7 +15,7 @@ export class PhotosService {
     private timeline: TimelineService,
   ) {}
 
-  async upload(childId: string, file: Express.Multer.File, description: string, userId: string | null) {
+  async upload(childId: string, file: Express.Multer.File, description: string, userId: string | null, ip = 'desconocida') {
     const child = await this.prisma.child.findUnique({ where: { id: childId } });
     if (!child) throw new NotFoundException('Expediente no encontrado');
 
@@ -54,7 +54,7 @@ export class PhotosService {
     await this.timeline.addEvent({
       childId,
       eventType: TimelineEventType.PHOTO_ADDED,
-      description: `Fotografía agregada${description ? ': ' + description : ''}`,
+      description: `Fotografía agregada${description ? ': ' + description : ''} — IP: ${ip}`,
       userId: userId || null,
     });
 

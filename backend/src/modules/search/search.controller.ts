@@ -12,6 +12,13 @@ import { Sex, CaseStatus, IdentityStatus } from '@prisma/client';
 export class SearchController {
   constructor(private service: SearchService) {}
 
+  @Get('stats')
+  @Public()
+  @ApiOperation({ summary: 'Estadísticas públicas' })
+  getStats() {
+    return this.service.getStats();
+  }
+
   @Get()
   @Public()
   @ApiOperation({ summary: 'Búsqueda avanzada de expedientes' })

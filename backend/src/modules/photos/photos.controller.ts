@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors, UploadedFile, BadRequestException, Request } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
@@ -9,6 +9,9 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { IsOptional, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+
+const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 class UploadPhotoDto {
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
@@ -37,8 +40,16 @@ export class PhotosController {
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UploadPhotoDto,
     @CurrentUser() user: any,
+    @Request() req: any,
   ) {
-    return this.service.upload(childId, file, dto.description || '', user?.id ?? null);
+    if (!file) throw new BadRequestException('No se recibió ninguna imagen');
+    if (!ALLOWED_TYPES.includes(file.mimetype))
+      throw new BadRequestException('Formato no permitido. Solo JPG, PNG, WEBP o HEIC');
+    if (file.size > MAX_SIZE_BYTES)
+      throw new BadRequestException('La imagen no puede superar 10 MB');
+
+    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'desconocida';
+    return this.service.upload(childId, file, dto.description || '', user?.id ?? null, ip as string);
   }
 
   @Patch(':photoId/main')

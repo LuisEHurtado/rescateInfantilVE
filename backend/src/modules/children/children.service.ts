@@ -19,7 +19,7 @@ export class ChildrenService {
     private notifications: NotificationsService,
   ) {}
 
-  async quickRegister(dto: QuickRegisterDto, userId?: string) {
+  async quickRegister(dto: QuickRegisterDto, userId?: string, ip = 'desconocida') {
     // Validar token de emergencia si se proporcionó uno
     if (!userId && dto.emergencyToken) {
       const valid = await this.authService.validateEmergencyToken(dto.emergencyToken);
@@ -99,7 +99,7 @@ export class ChildrenService {
     await this.timeline.addEvent({
       childId: child.id,
       eventType: TimelineEventType.REGISTERED,
-      description: `Niño/a registrado(a) con código ${code}. Encontrado en: ${dto.foundAddress}`,
+      description: `Niño/a registrado(a) con código ${code}. Encontrado en: ${dto.foundAddress}. Registrado por: ${dto.rescuerName} (${dto.rescuerCedula}) — IP: ${ip}`,
       userId: userId || null,
     });
 

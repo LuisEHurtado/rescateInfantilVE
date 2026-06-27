@@ -99,4 +99,16 @@ export class SearchService {
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
+
+  async getStats() {
+    const [total, hospitalized, reunified, identified, unidentified, inObservation] = await Promise.all([
+      this.prisma.child.count({ where: { isActive: true } }),
+      this.prisma.child.count({ where: { isActive: true, caseStatus: 'HOSPITALIZED' } }),
+      this.prisma.child.count({ where: { isActive: true, caseStatus: 'REUNIFIED' } }),
+      this.prisma.child.count({ where: { isActive: true, caseStatus: 'IDENTIFIED' } }),
+      this.prisma.child.count({ where: { isActive: true, caseStatus: 'UNIDENTIFIED' } }),
+      this.prisma.child.count({ where: { isActive: true, caseStatus: 'IN_OBSERVATION' } }),
+    ]);
+    return { total, hospitalized, reunified, identified, unidentified, inObservation };
+  }
 }
