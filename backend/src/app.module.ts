@@ -17,6 +17,7 @@ import { SearchModule } from './modules/search/search.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { VisitsModule } from './modules/visits/visits.module';
+import { FamilySearchModule } from './modules/family-search/family-search.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { VisitsModule } from './modules/visits/visits.module';
     DashboardModule,
     ReportsModule,
     VisitsModule,
+    FamilySearchModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

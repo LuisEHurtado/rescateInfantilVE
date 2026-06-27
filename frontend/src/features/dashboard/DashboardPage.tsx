@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../../api/endpoints/dashboard';
 import { visitsApi } from '../../api/endpoints/visits';
+import { familySearchApi } from '../../api/endpoints/familySearch';
 import { DashboardStats, Child, Transfer } from '../../types';
 import { ChildAvatar } from '../../components/shared/ChildAvatar';
 import { ChildStatusBadge } from '../../components/shared/ChildStatusBadge';
 import { formatDate } from '../../utils/labels';
-import { Users, AlertCircle, CheckCircle, Heart, Building2, ArrowRight, Clock, Eye, Search, Smartphone, Monitor, TrendingUp } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, Heart, Building2, ArrowRight, Clock, Eye, Search, Smartphone, Monitor, TrendingUp, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 function StatCard({ label, value, icon: Icon, color, sub }: { label: string; value: number; icon: any; color: string; sub?: string }) {
@@ -34,6 +35,8 @@ export function DashboardPage() {
   const { data: recentTransfers } = useQuery<Transfer[]>({ queryKey: ['recent-transfers'], queryFn: dashboardApi.recentTransfers });
   const { data: visitStats } = useQuery({ queryKey: ['visit-stats'], queryFn: visitsApi.stats, refetchInterval: 60000 });
   const { data: recentVisits } = useQuery({ queryKey: ['recent-visits'], queryFn: () => visitsApi.recent(30), refetchInterval: 60000 });
+  const { data: familySearchStats } = useQuery({ queryKey: ['family-search-stats'], queryFn: familySearchApi.stats, refetchInterval: 60000 });
+  const { data: activeFamilySearches } = useQuery({ queryKey: ['active-family-searches'], queryFn: () => familySearchApi.list('ACTIVE'), refetchInterval: 60000 });
 
   if (!stats) return (
     <div className="flex items-center justify-center h-64">
@@ -239,6 +242,48 @@ export function DashboardPage() {
               ))}
               {!recentVisits?.length && <p className="text-sm text-gray-400 text-center py-8">Sin visitas aún</p>}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Búsquedas de familiares ── */}
+      <div>
+        <h2 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <Heart size={16} /> Familias buscando a sus hijos
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          <StatCard label="Búsquedas activas"   value={familySearchStats?.active    ?? 0} icon={Heart}       color="text-purple-600" />
+          <StatCard label="En revisión"          value={familySearchStats?.reviewing ?? 0} icon={Clock}       color="text-orange-600" />
+          <StatCard label="Coincidencia hallada" value={familySearchStats?.matched   ?? 0} icon={CheckCircle} color="text-green-600" />
+          <StatCard label="Cerradas"             value={familySearchStats?.closed    ?? 0} icon={Users}       color="text-gray-600" />
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2"><Phone size={14} /> Búsquedas activas recientes</h3>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {activeFamilySearches?.slice(0, 8).map((s: any) => (
+              <div key={s.id} className="px-5 py-3 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Heart size={14} className="text-purple-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{s.contactName}</p>
+                  <p className="text-xs text-gray-500">
+                    {s.relationship} · {s.contactPhone}
+                    {s.childName ? ` · busca a "${s.childName}"` : ''}
+                    {s.childSex && s.childSex !== 'UNDETERMINED' ? ` · ${s.childSex === 'MALE' ? 'Masc.' : 'Fem.'}` : ''}
+                    {s.childAgeMin != null ? ` · ~${s.childAgeMin}${s.childAgeMax && s.childAgeMax !== s.childAgeMin ? `-${s.childAgeMax}` : ''}a` : ''}
+                    {s.childState ? ` · ${s.childState}` : ''}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-400 flex-shrink-0">{formatDate(s.createdAt, true)}</p>
+              </div>
+            ))}
+            {!activeFamilySearches?.length && (
+              <p className="text-sm text-gray-400 text-center py-8">Sin búsquedas activas</p>
+            )}
           </div>
         </div>
       </div>

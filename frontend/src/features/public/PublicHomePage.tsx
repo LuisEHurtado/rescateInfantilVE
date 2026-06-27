@@ -8,6 +8,7 @@ import imageCompression from 'browser-image-compression';
 import api from '../../api/client';
 import { searchApi } from '../../api/endpoints/search';
 import { childrenApi } from '../../api/endpoints/children';
+import { familySearchApi } from '../../api/endpoints/familySearch';
 import { VENEZUELA_MUNICIPALITIES, VENEZUELA_STATES } from '../../data/venezuela-municipalities';
 import {
   Search, AlertTriangle, CheckCircle, Camera, Plus, Trash2,
@@ -118,7 +119,15 @@ const EYE_COLORS   = ['Marrones', 'Negros', 'Verdes', 'Azules', 'Claros', 'Grise
 export function PublicHomePage() {
   const [urlSearchParams, setUrlSearchParams] = useSearchParams();
 
-  const [mode, setMode] = useState<'search' | 'register' | 'success'>('search');
+  const [mode, setMode] = useState<'search' | 'register' | 'success' | 'family-search' | 'family-search-result'>('search');
+  const [familySearchResult, setFamilySearchResult] = useState<{ search: any; matches: any[] } | null>(null);
+  const [familySearchSubmitting, setFamilySearchSubmitting] = useState(false);
+  const [familyForm, setFamilyForm] = useState({
+    contactName: '', contactPhone: '', contactWhatsapp: '', relationship: 'madre',
+    childName: '', childSex: 'UNDETERMINED', childAgeMin: '', childAgeMax: '',
+    childState: '', skinColor: '', hairColor: '', eyeColor: '', lastSeenPlace: '',
+    circumstances: '', specialMarks: '',
+  });
   const [query, setQuery] = useState(() => urlSearchParams.get('q') || '');
   const [searchState, setSearchState] = useState(() => urlSearchParams.get('state') || '');
   const [searchMunicipality, setSearchMunicipality] = useState(() => urlSearchParams.get('municipality') || '');
@@ -290,6 +299,320 @@ export function PublicHomePage() {
       toast.error(err.response?.data?.message ?? 'Error al registrar. Verifique los datos.');
     }
   };
+
+  const handleFamilySearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!familyForm.contactName || !familyForm.contactPhone) {
+      toast.error('Nombre y teléfono de contacto son obligatorios');
+      return;
+    }
+    setFamilySearchSubmitting(true);
+    try {
+      const payload: any = {
+        contactName: familyForm.contactName,
+        contactPhone: familyForm.contactPhone,
+        contactWhatsapp: familyForm.contactWhatsapp || undefined,
+        relationship: familyForm.relationship,
+        childName: familyForm.childName || undefined,
+        childSex: familyForm.childSex || 'UNDETERMINED',
+        childAgeMin: familyForm.childAgeMin ? parseInt(familyForm.childAgeMin) : undefined,
+        childAgeMax: familyForm.childAgeMax ? parseInt(familyForm.childAgeMax) : undefined,
+        childState: familyForm.childState || undefined,
+        skinColor: familyForm.skinColor || undefined,
+        hairColor: familyForm.hairColor || undefined,
+        eyeColor: familyForm.eyeColor || undefined,
+        lastSeenPlace: familyForm.lastSeenPlace || undefined,
+        circumstances: familyForm.circumstances || undefined,
+        specialMarks: familyForm.specialMarks || undefined,
+      };
+      const result = await familySearchApi.create(payload);
+      setFamilySearchResult(result);
+      setMode('family-search-result');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? 'Error al registrar la búsqueda');
+    } finally {
+      setFamilySearchSubmitting(false);
+    }
+  };
+
+  // ── Family Search Form ────────────────────────────────────────────
+  if (mode === 'family-search') {
+    return (
+      <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: D.light }}>
+        <Header onRegister={() => setMode('register')} />
+        <Toaster position="top-right" />
+        <div className="max-w-2xl mx-auto w-full px-4 py-6 pb-20">
+          <button onClick={() => setMode('search')}
+            className="flex items-center gap-1.5 text-sm mb-5 transition-colors hover:opacity-70" style={{ color: D.blue }}>
+            <ArrowLeft size={15} /> Volver al buscador
+          </button>
+
+          <div className="mb-6">
+            <h2 className="text-2xl font-black" style={{ color: D.navy }}>Estoy buscando a mi hijo/a</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Ingresa los datos del niño o niña que buscas y el sistema buscará coincidencias en los registros actuales.
+            </p>
+          </div>
+
+          <form onSubmit={handleFamilySearchSubmit} className="space-y-4">
+            {/* Datos de contacto */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Phone size={14} /> Tus datos de contacto
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Tu nombre completo *</label>
+                  <input value={familyForm.contactName} onChange={e => setFamilyForm(p => ({ ...p, contactName: e.target.value }))}
+                    placeholder="Nombre y apellido"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Parentesco *</label>
+                  <select value={familyForm.relationship} onChange={e => setFamilyForm(p => ({ ...p, relationship: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 transition-all bg-white">
+                    {['madre', 'padre', 'abuela', 'abuelo', 'tía', 'tío', 'hermana', 'hermano', 'familiar', 'otro'].map(r => (
+                      <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Teléfono / celular *</label>
+                  <input value={familyForm.contactPhone} onChange={e => setFamilyForm(p => ({ ...p, contactPhone: e.target.value }))}
+                    placeholder="04XX-XXXXXXX" type="tel"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">WhatsApp (opcional)</label>
+                  <input value={familyForm.contactWhatsapp} onChange={e => setFamilyForm(p => ({ ...p, contactWhatsapp: e.target.value }))}
+                    placeholder="04XX-XXXXXXX" type="tel"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+                </div>
+              </div>
+            </div>
+
+            {/* Datos del niño */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <User size={14} /> Datos del niño o niña que buscas
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Nombre (si lo conoces)</label>
+                  <input value={familyForm.childName} onChange={e => setFamilyForm(p => ({ ...p, childName: e.target.value }))}
+                    placeholder="Nombre, apellido o apodo"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Sexo</label>
+                  <select value={familyForm.childSex} onChange={e => setFamilyForm(p => ({ ...p, childSex: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 transition-all bg-white">
+                    <option value="UNDETERMINED">No especificar</option>
+                    <option value="MALE">Masculino</option>
+                    <option value="FEMALE">Femenino</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Estado donde fue visto por última vez</label>
+                  <select value={familyForm.childState} onChange={e => setFamilyForm(p => ({ ...p, childState: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 transition-all bg-white">
+                    <option value="">No sé / cualquiera</option>
+                    {VENEZUELA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Edad mínima estimada</label>
+                  <input value={familyForm.childAgeMin} onChange={e => setFamilyForm(p => ({ ...p, childAgeMin: e.target.value }))}
+                    placeholder="ej: 4" type="number" min="0" max="18"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Edad máxima estimada</label>
+                  <input value={familyForm.childAgeMax} onChange={e => setFamilyForm(p => ({ ...p, childAgeMax: e.target.value }))}
+                    placeholder="ej: 7" type="number" min="0" max="18"
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+                </div>
+              </div>
+            </div>
+
+            {/* Rasgos físicos */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Info size={14} /> Descripción física (opcional, mejora las coincidencias)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Tono de piel</label>
+                  <select value={familyForm.skinColor} onChange={e => setFamilyForm(p => ({ ...p, skinColor: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 transition-all bg-white">
+                    <option value="">No especificar</option>
+                    {SKIN_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Color de cabello</label>
+                  <select value={familyForm.hairColor} onChange={e => setFamilyForm(p => ({ ...p, hairColor: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 transition-all bg-white">
+                    <option value="">No especificar</option>
+                    {HAIR_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Color de ojos</label>
+                  <select value={familyForm.eyeColor} onChange={e => setFamilyForm(p => ({ ...p, eyeColor: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 transition-all bg-white">
+                    <option value="">No especificar</option>
+                    {EYE_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Marcas especiales / señas particulares</label>
+                  <input value={familyForm.specialMarks} onChange={e => setFamilyForm(p => ({ ...p, specialMarks: e.target.value }))}
+                    placeholder="Cicatriz, lunar, tatuaje..."
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Lugar donde lo/la viste por última vez</label>
+                  <input value={familyForm.lastSeenPlace} onChange={e => setFamilyForm(p => ({ ...p, lastSeenPlace: e.target.value }))}
+                    placeholder="Hospital, calle, municipio..."
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all" />
+                </div>
+              </div>
+              <div className="mt-3">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Circunstancias (cómo se separaron)</label>
+                <textarea value={familyForm.circumstances} onChange={e => setFamilyForm(p => ({ ...p, circumstances: e.target.value }))}
+                  placeholder="Describir brevemente cómo o cuándo se separaron..."
+                  rows={3}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all resize-none" />
+              </div>
+            </div>
+
+            <button type="submit" disabled={familySearchSubmitting}
+              className="w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-3 shadow-lg transition-all hover:opacity-90 disabled:opacity-50"
+              style={{ background: `linear-gradient(135deg, #7c3aed, ${D.navy})` }}>
+              {familySearchSubmitting
+                ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Buscando coincidencias...</>
+                : <><Heart size={18} /> Buscar coincidencias</>
+              }
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Family Search Results ─────────────────────────────────────────
+  if (mode === 'family-search-result' && familySearchResult) {
+    const { search, matches } = familySearchResult;
+    return (
+      <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: D.light }}>
+        <Header onRegister={() => setMode('register')} />
+        <Toaster position="top-right" />
+        <div className="max-w-2xl mx-auto w-full px-4 py-6 pb-20">
+          <button onClick={() => setMode('family-search')}
+            className="flex items-center gap-1.5 text-sm mb-5 transition-colors hover:opacity-70" style={{ color: D.blue }}>
+            <ArrowLeft size={15} /> Modificar búsqueda
+          </button>
+
+          <div className="mb-6">
+            <h2 className="text-xl font-black" style={{ color: D.navy }}>Resultados de la búsqueda</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Tu búsqueda fue registrada. El equipo de coordinación también recibirá este aviso.
+            </p>
+          </div>
+
+          {/* Confirmation card */}
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-5 flex items-start gap-3">
+            <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-green-800">Búsqueda registrada exitosamente</p>
+              <p className="text-xs text-green-600 mt-0.5">
+                Si encontramos una coincidencia futura, el equipo se comunicará a <strong>{search.contactPhone}</strong>
+              </p>
+            </div>
+          </div>
+
+          {/* Matches */}
+          {matches.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#eff6ff' }}>
+                <Search size={24} style={{ color: D.blue }} />
+              </div>
+              <p className="font-semibold text-gray-700">No encontramos coincidencias por ahora</p>
+              <p className="text-sm text-gray-400 mt-1.5 max-w-xs mx-auto">
+                Tu búsqueda quedó registrada. Si un niño/a que coincide con la descripción es ingresado más tarde, el equipo revisará el registro.
+              </p>
+              <button onClick={() => setMode('search')}
+                className="mt-4 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all hover:opacity-90"
+                style={{ background: D.blue }}>
+                Ver todos los registros
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="mb-3 flex items-center gap-2">
+                <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                <p className="text-sm font-semibold text-amber-700">
+                  {matches.length} posible{matches.length > 1 ? 's' : ''} coincidencia{matches.length > 1 ? 's' : ''} — verifique con el personal autorizado
+                </p>
+              </div>
+              <div className="space-y-3">
+                {matches.map(({ child, score, reasons }: any) => (
+                  <div key={child.id} className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
+                    <div className="flex items-start gap-4 p-4">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                        <ChildPhoto photos={child.photos} sex={child.sex} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-blue-700 font-mono">{child.code}</span>
+                          <Badge status={child.caseStatus} />
+                          <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">
+                            {score}% coincidencia
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-800 mt-1">
+                          {[child.firstName, child.lastName].filter(Boolean).join(' ') || <span className="italic text-gray-400">Sin nombre registrado</span>}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {sexLabel[child.sex] ?? child.sex}
+                          {child.approximateAge ? ` · ~${child.approximateAge} años` : ''}
+                          {child.findLocation?.state ? ` · ${child.findLocation.state}` : ''}
+                          {child.currentLocation?.hospital ? ` · ${child.currentLocation.hospital}` : ''}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {reasons.map((r: string) => (
+                            <span key={r} className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">{r}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border-t border-gray-100 px-4 py-2.5 bg-amber-50 flex items-center justify-between">
+                      <p className="text-xs text-amber-700">Para verificar identidad contacte al personal autorizado</p>
+                      <a href={`https://wa.me/?text=${encodeURIComponent(`📋 Posible coincidencia en sistema Rescate VE\nCódigo: ${child.code}\nEst: ${child.findLocation?.state ?? '?'}\nVer: ${window.location.origin}/?q=${child.code}`)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-100 px-2.5 py-1.5 rounded-lg hover:bg-green-200 transition-all flex-shrink-0">
+                        <MessageCircle size={12} /> Compartir
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                <p className="text-xs text-blue-800 font-semibold mb-1">¿Crees que hay una coincidencia?</p>
+                <p className="text-xs text-blue-600">
+                  Comunícate con las autoridades o el hospital indicado. No entregues a ningún niño sin verificación oficial.
+                  Para más información: <a href="mailto:support@dinapos.cloud" className="underline">support@dinapos.cloud</a>
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // ── Success ───────────────────────────────────────────────────────
   if (mode === 'success' && registered) {
@@ -598,10 +921,10 @@ export function PublicHomePage() {
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
                 Sistema de Registro<br />
-                <span style={{ color: D.sky }}>Niños Rescatados</span>
+                <span style={{ color: D.sky }}>Niños y Niñas</span>
               </h1>
               <p className="text-sm mt-2" style={{ color: '#94b4d4' }}>
-                Venezuela · Emergencia Nacional
+                Rescatados · Desaparecidos · En hospital · Venezuela
               </p>
             </div>
             {/* Stats inline */}
@@ -736,7 +1059,7 @@ export function PublicHomePage() {
             </span>
           </div>
           {/* Fila 2: registrar + toggle vista */}
-          <div className="mt-2 flex items-center justify-between">
+          <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1 bg-white rounded-xl p-0.5 border border-gray-200 shadow-sm">
               <button onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
@@ -749,11 +1072,14 @@ export function PublicHomePage() {
                 <LayoutList size={15} />
               </button>
             </div>
-            <button onClick={() => setMode('register')}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 shadow-sm whitespace-nowrap"
-              style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}>
-              <Plus size={14} /> <span className="hidden sm:inline">Registrar </span>niño/niña
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Botón "Busco a mi hijo/a" — oculto temporalmente */}
+              <button onClick={() => setMode('register')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 shadow-sm whitespace-nowrap"
+                style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}>
+                <Plus size={14} /> <span className="hidden sm:inline">Registrar </span>niño/niña
+              </button>
+            </div>
           </div>
         </div>
 

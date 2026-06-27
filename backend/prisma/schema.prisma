@@ -149,6 +149,7 @@ model Child {
   timeline        TimelineEvent[]
   auditLogs       AuditLog[]
   notifications   Notification[]
+  familySearches  FamilySearch[]
 
   @@index([code])
   @@index([caseStatus])
@@ -329,6 +330,47 @@ model Notification {
   @@index([userId, isRead])
   @@index([childId])
   @@map("notifications")
+}
+
+enum FamilySearchStatus {
+  ACTIVE
+  REVIEWING
+  MATCHED
+  CLOSED
+}
+
+model FamilySearch {
+  id                String             @id @default(uuid())
+  contactName       String             @map("contact_name")
+  contactPhone      String             @map("contact_phone")
+  contactWhatsapp   String?            @map("contact_whatsapp")
+  contactEmail      String?            @map("contact_email")
+  relationship      String
+  childName         String?            @map("child_name")
+  childSex          Sex                @default(UNDETERMINED) @map("child_sex")
+  childAgeMin       Int?               @map("child_age_min")
+  childAgeMax       Int?               @map("child_age_max")
+  childState        String?            @map("child_state")
+  childMunicipality String?            @map("child_municipality")
+  skinColor         String?            @map("skin_color")
+  hairColor         String?            @map("hair_color")
+  eyeColor          String?            @map("eye_color")
+  specialMarks      String?            @map("special_marks")
+  lastSeenAt        DateTime?          @map("last_seen_at")
+  lastSeenPlace     String?            @map("last_seen_place")
+  circumstances     String?
+  observations      String?
+  status            FamilySearchStatus @default(ACTIVE)
+  adminNotes        String?            @map("admin_notes")
+  resolvedChildId   String?            @map("resolved_child_id")
+  resolvedChild     Child?             @relation(fields: [resolvedChildId], references: [id])
+  ip                String?
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("family_searches")
 }
 
 model VisitLog {
