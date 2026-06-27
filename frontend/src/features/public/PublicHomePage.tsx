@@ -561,7 +561,7 @@ export function PublicHomePage() {
               style={{ background: `linear-gradient(135deg, ${currentCase.color}, ${D.navy})` }}>
               {isSubmitting
                 ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Registrando...</>
-                : <>{currentCase.emoji} REGISTRAR — {currentCase.label.toUpperCase()}</>
+                : <>{currentCase.emoji} REGISTRAR NIÑO / NIÑA</>
               }
             </button>
           </form>
@@ -1048,7 +1048,8 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
               const nameStr = [child.firstName, child.lastName].filter(Boolean).join(' ') || 'Sin nombre registrado';
               const loc = child.findLocation ? `${child.findLocation.municipality}, ${child.findLocation.state}` : '';
               const url = `${window.location.origin}/?q=${child.code}`;
-              const text = `🆘 Niño/a encontrado — ${nameStr}\nCódigo: *${child.code}*\nEstado: ${statusMap[child.caseStatus]?.label ?? child.caseStatus}${loc ? `\nUbicación: ${loc}` : ''}\nVer ficha completa: ${url}`;
+              const statusLabel = statusMap[child.caseStatus]?.label ?? child.caseStatus;
+              const text = `📋 Niño/a en sistema Rescate VE\nNombre: ${nameStr}\nCódigo: *${child.code}*\nEstado: ${statusLabel}${loc ? `\nUbicación: ${loc}` : ''}\nVer ficha completa: ${url}`;
               window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
             }}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
@@ -1338,7 +1339,7 @@ function ChildListRow({ child, onClick }: { child: any; onClick: () => void }) {
           e.stopPropagation();
           const name2 = [child.firstName, child.lastName].filter(Boolean).join(' ') || 'Sin nombre';
           const url = `${window.location.origin}/?q=${child.code}`;
-          const text = `🆘 Niño/a encontrado — ${name2}\nCódigo: *${child.code}*\nEstado: ${statusMap[child.caseStatus]?.label ?? child.caseStatus}\nVer: ${url}`;
+          const text = `📋 Niño/a en sistema Rescate VE\nNombre: ${name2}\nCódigo: *${child.code}*\nEstado: ${statusMap[child.caseStatus]?.label ?? child.caseStatus}\nVer: ${url}`;
           window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
         }} className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-all" title="Compartir por WhatsApp">
           <MessageCircle size={13} />
