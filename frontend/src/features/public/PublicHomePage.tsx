@@ -516,8 +516,9 @@ export function PublicHomePage() {
           </div>
 
           {/* Search bar */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-1 flex flex-col sm:flex-row gap-1">
-            <div className="flex-1 relative">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-1 flex flex-col gap-1">
+            {/* Fila 1: input */}
+            <div className="relative">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
               <input type="text" placeholder="Buscar por código, nombre o cédula..."
                 value={query}
@@ -526,26 +527,27 @@ export function PublicHomePage() {
                 className="w-full pl-10 pr-4 py-3 bg-white/10 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:bg-white/20 transition-all"
               />
             </div>
-            <select value={searchState} onChange={e => { setSearchState(e.target.value); setSearchMunicipality(''); }}
-              className="sm:w-44 px-3 py-3 bg-white/10 rounded-xl text-sm text-white/70 focus:outline-none focus:bg-white/20 transition-all">
-              <option value="" className="text-gray-800">Todos los estados</option>
-              {VENEZUELA_STATES.map(s => <option key={s} value={s} className="text-gray-800">{s}</option>)}
-            </select>
-            <select value={searchMunicipality} onChange={e => setSearchMunicipality(e.target.value)} disabled={!searchState}
-              className="sm:w-44 px-3 py-3 bg-white/10 rounded-xl text-sm text-white/70 focus:outline-none focus:bg-white/20 transition-all disabled:opacity-30">
-              <option value="" className="text-gray-800">Municipio</option>
-              {(VENEZUELA_MUNICIPALITIES[searchState] ?? []).map(m => <option key={m} value={m} className="text-gray-800">{m}</option>)}
-            </select>
+            {/* Fila 2: selects + botón */}
             <div className="flex gap-1">
+              <select value={searchState} onChange={e => { setSearchState(e.target.value); setSearchMunicipality(''); }}
+                className="flex-1 min-w-0 px-3 py-2.5 bg-white/10 rounded-xl text-sm text-white/70 focus:outline-none focus:bg-white/20 transition-all">
+                <option value="" className="text-gray-800">Estado</option>
+                {VENEZUELA_STATES.map(s => <option key={s} value={s} className="text-gray-800">{s}</option>)}
+              </select>
+              <select value={searchMunicipality} onChange={e => setSearchMunicipality(e.target.value)} disabled={!searchState}
+                className="flex-1 min-w-0 px-3 py-2.5 bg-white/10 rounded-xl text-sm text-white/70 focus:outline-none focus:bg-white/20 transition-all disabled:opacity-30">
+                <option value="" className="text-gray-800">Municipio</option>
+                {(VENEZUELA_MUNICIPALITIES[searchState] ?? []).map(m => <option key={m} value={m} className="text-gray-800">{m}</option>)}
+              </select>
               <button onClick={handleSearch} disabled={isFetching}
-                className="flex-1 sm:flex-none px-5 py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50 flex-shrink-0"
                 style={{ background: D.blue }}>
                 {isFetching ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Search size={14} />}
-                Buscar
+                <span className="hidden sm:inline">Buscar</span>
               </button>
               {(query || searchState) && (
                 <button onClick={() => { setQuery(''); setSearchState(''); setSearchMunicipality(''); setSearchParams({ page: 1, limit: 20 }); }}
-                  className="px-4 py-3 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all">
+                  className="px-3 py-2.5 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all flex-shrink-0">
                   ✕
                 </button>
               )}
@@ -558,29 +560,33 @@ export function PublicHomePage() {
       <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
 
         {/* Toolbar: pills + register btn */}
-        <div className="flex items-center gap-2 mb-5 flex-wrap">
-          {[
-            { value: '',             label: 'Todos',           dot: '' },
-            { value: 'UNIDENTIFIED', label: 'Sin identificar', dot: '#94a3b8' },
-            { value: 'HOSPITALIZED', label: 'En hospital',     dot: '#f97316' },
-            { value: 'IDENTIFIED',   label: 'Identificados',   dot: '#3b82f6' },
-            { value: 'REUNIFIED',    label: 'Reunificados',    dot: '#22c55e' },
-          ].map(({ value, label, dot }) => (
-            <button key={value} onClick={() => handleStatusFilter(value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${
-                statusFilter === value
-                  ? 'border-transparent text-white shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
-              style={statusFilter === value ? { background: D.navy } : {}}>
-              {dot && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statusFilter === value ? '#fff' : dot }} />}
-              {label}
-            </button>
-          ))}
-          <div className="ml-auto flex items-center gap-3">
-            <span className="text-xs text-gray-400">
+        <div className="mb-5">
+          {/* Pills con scroll horizontal en móvil */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {[
+              { value: '',             label: 'Todos',           dot: '' },
+              { value: 'UNIDENTIFIED', label: 'Sin identificar', dot: '#94a3b8' },
+              { value: 'HOSPITALIZED', label: 'En hospital',     dot: '#f97316' },
+              { value: 'IDENTIFIED',   label: 'Identificados',   dot: '#3b82f6' },
+              { value: 'REUNIFIED',    label: 'Reunificados',    dot: '#22c55e' },
+            ].map(({ value, label, dot }) => (
+              <button key={value} onClick={() => handleStatusFilter(value)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap flex-shrink-0 ${
+                  statusFilter === value
+                    ? 'border-transparent text-white shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+                style={statusFilter === value ? { background: D.navy } : {}}>
+                {dot && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statusFilter === value ? '#fff' : dot }} />}
+                {label}
+              </button>
+            ))}
+            <span className="text-xs text-gray-400 whitespace-nowrap ml-2 flex-shrink-0">
               {searchData?.total != null && <>{searchData.total} registro{searchData.total !== 1 ? 's' : ''}</>}
             </span>
+          </div>
+          {/* Botón registrar — fila separada en móvil */}
+          <div className="mt-2 flex justify-end">
             <button onClick={() => setMode('register')}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 shadow-sm"
               style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}>
@@ -656,10 +662,9 @@ export function PublicHomePage() {
           <div className="border-t mt-6 pt-5 text-center" style={{ borderColor: '#1e3a6b' }}>
             <p className="text-xs font-semibold mb-2 text-white">Aviso Legal</p>
             <p className="text-xs leading-relaxed text-white/60 max-w-2xl mx-auto">
-              Esta plataforma es una iniciativa ciudadana, sin fines de lucro, creada para apoyar los derechos que contempla la{' '}
-              <span className="text-white/80 font-medium">Ley Orgánica de Protección del Niño, Niña y Adolescente (LOPNA)</span>.
+              Esta plataforma es una iniciativa ciudadana, sin fines de lucro.
               La información registrada está a disposición de las autoridades competentes.
-              Los administradores de esta plataforma no se hacen responsables por daños o perjuicios ocasionados por el uso indebido de la misma.
+              Los administradores no se hacen responsables por daños o perjuicios ocasionados por el uso indebido de la misma.
               Verifica siempre la información antes de difundirla.
             </p>
             <p className="text-xs mt-3 text-white/40">
