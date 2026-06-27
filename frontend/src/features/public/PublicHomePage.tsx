@@ -826,14 +826,7 @@ export function PublicHomePage() {
       {/* ── Footer strip ─────────────────────────────────────── */}
       <div style={{ background: D.navy }}>
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: D.sky }}>Personal autorizado</p>
-              <p className="text-xs text-white/40">Si eres personal del sistema (hospital, rescatista registrado), accede al panel completo.</p>
-              <a href="/login" className="text-xs font-semibold mt-2 block hover:opacity-70 transition-opacity" style={{ color: D.sky }}>
-                Acceder al panel →
-              </a>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: D.sky }}>Sobre el sistema</p>
               <p className="text-xs text-white/40">Registro y seguimiento de niños y niñas rescatados durante la emergencia nacional de Venezuela.</p>

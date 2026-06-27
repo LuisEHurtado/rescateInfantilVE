@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateEmergencyTokenDto } from './dto/create-emergency-token.dto';
@@ -18,6 +19,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @Throttle({ default: { ttl: 900000, limit: 5 } })
   @ApiOperation({ summary: 'Iniciar sesión' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
