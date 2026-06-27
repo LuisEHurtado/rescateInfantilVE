@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Fotos subidas
+backend/uploads/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

@@ -1,0 +1,331 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  RESCUER
+  HOSPITAL
+  VIEWER
+}
+
+enum Sex {
+  MALE
+  FEMALE
+  UNDETERMINED
+}
+
+enum IdentityStatus {
+  UNIDENTIFIED
+  PARTIAL
+  IDENTIFIED
+  REUNIFIED
+}
+
+enum CaseStatus {
+  UNIDENTIFIED
+  PARTIAL_IDENTITY
+  IDENTIFIED
+  HOSPITALIZED
+  IN_OBSERVATION
+  TRANSFERRED
+  REUNIFIED
+  DECEASED
+}
+
+enum FamilyVerifyStatus {
+  UNVERIFIED
+  IN_PROCESS
+  CONFIRMED
+}
+
+enum TimelineEventType {
+  REGISTERED
+  FOUND_LOCATION_SET
+  TRANSFER
+  MEDICAL_ADMISSION
+  MEDICAL_UPDATE
+  MEDICAL_DISCHARGE
+  PHOTO_ADDED
+  IDENTITY_UPDATED
+  FAMILY_ADDED
+  FAMILY_VERIFIED
+  STATUS_CHANGED
+  REUNIFICATION
+  NOTE_ADDED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         Role     @default(VIEWER)
+  email        String?
+  organization String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  registeredChildren Child[]        @relation("RegisteredBy")
+  uploadedPhotos     Photo[]
+  auditLogs          AuditLog[]
+  timelineEvents     TimelineEvent[]
+  transfers          Transfer[]
+  medicalRecords     MedicalRecord[]
+  familyMembers      FamilyMember[]
+  notifications      Notification[]
+
+  @@map("users")
+}
+
+model EmergencyToken {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  description String?
+  createdById String    @map("created_by_id")
+  expiresAt   DateTime? @map("expires_at")
+  isActive    Boolean   @default(true) @map("is_active")
+  usageCount  Int       @default(0) @map("usage_count")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("emergency_tokens")
+}
+
+model Child {
+  id             String         @id @default(uuid())
+  code           String         @unique
+  firstName      String?        @map("first_name")
+  secondName     String?        @map("second_name")
+  lastName       String?        @map("last_name")
+  nickname       String?
+  sex            Sex            @default(UNDETERMINED)
+  approximateAge Int?           @map("approximate_age")
+  birthDateEst   DateTime?      @map("birth_date_est")
+  nationality    String?        @default("Venezolana")
+  identityStatus IdentityStatus @default(UNIDENTIFIED) @map("identity_status")
+  caseStatus     CaseStatus     @default(UNIDENTIFIED) @map("case_status")
+  registeredById String?        @map("registered_by_id")
+  registeredBy   User?          @relation("RegisteredBy", fields: [registeredById], references: [id])
+  rescueOrg      String?        @map("rescue_org")
+  rescuerName    String?        @map("rescuer_name")
+  rescuedAt      DateTime       @default(now()) @map("rescued_at")
+  observations   String?
+  isActive       Boolean        @default(true) @map("is_active")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  // Extra contact fields
+  cedula          String?
+  rescuerPhone    String?  @map("rescuer_phone")
+  rescuerCedula   String?  @map("rescuer_cedula")
+  rescuerWhatsapp String?  @map("rescuer_whatsapp")
+  reporterType    String?  @map("reporter_type")
+
+  // Physical description (inline for simplicity)
+  skinColor      String?  @map("skin_color")
+  eyeColor       String?  @map("eye_color")
+  hairColor      String?  @map("hair_color")
+  heightCm       Float?   @map("height_cm")
+  weightKg       Float?   @map("weight_kg")
+  build          String?
+  specialMarks   String?  @map("special_marks")
+  scars          String?
+  birthmarks     String?
+  physicalObs    String?  @map("physical_obs")
+
+  findLocation    FindLocation?
+  currentLocation CurrentLocation?
+  photos          Photo[]
+  transfers       Transfer[]
+  medicalRecords  MedicalRecord[]
+  familyMembers   FamilyMember[]
+  timeline        TimelineEvent[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+
+  @@index([code])
+  @@index([caseStatus])
+  @@index([identityStatus])
+  @@index([sex])
+  @@index([rescuedAt])
+  @@map("children")
+}
+
+model FindLocation {
+  id           String   @id @default(uuid())
+  childId      String   @unique @map("child_id")
+  child        Child    @relation(fields: [childId], references: [id])
+  state        String
+  municipality String
+  parish       String?
+  sector       String?
+  address      String?
+  gpsLat       Float?   @map("gps_lat")
+  gpsLng       Float?   @map("gps_lng")
+  foundAt      DateTime @map("found_at")
+  rescueOrg    String?  @map("rescue_org")
+  rescuerName  String?  @map("rescuer_name")
+  photoUrl     String?  @map("photo_url")
+  observations String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("find_locations")
+}
+
+model CurrentLocation {
+  id          String   @id @default(uuid())
+  childId     String   @unique @map("child_id")
+  child       Child    @relation(fields: [childId], references: [id])
+  hospital    String
+  area        String?
+  bedNumber   String?  @map("bed_number")
+  since       DateTime @default(now())
+  status      String?
+  updatedById String?  @map("updated_by_id")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("current_locations")
+}
+
+model Transfer {
+  id           String   @id @default(uuid())
+  childId      String   @map("child_id")
+  child        Child    @relation(fields: [childId], references: [id])
+  origin       String
+  destination  String
+  departedAt   DateTime @map("departed_at")
+  arrivedAt    DateTime? @map("arrived_at")
+  reason       String?
+  transport    String?
+  responsible  String?
+  observations String?
+  registeredById String? @map("registered_by_id")
+  registeredBy   User?   @relation(fields: [registeredById], references: [id])
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([childId])
+  @@map("transfers")
+}
+
+model Photo {
+  id           String   @id @default(uuid())
+  childId      String   @map("child_id")
+  child        Child    @relation(fields: [childId], references: [id])
+  url          String
+  thumbnailUrl String?  @map("thumbnail_url")
+  isMain       Boolean  @default(false) @map("is_main")
+  description  String?
+  uploadedById String?  @map("uploaded_by_id")
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  uploadedAt   DateTime @default(now()) @map("uploaded_at")
+
+  @@index([childId])
+  @@map("photos")
+}
+
+model MedicalRecord {
+  id             String    @id @default(uuid())
+  childId        String    @map("child_id")
+  child          Child     @relation(fields: [childId], references: [id])
+  hospital       String
+  admittedAt     DateTime  @map("admitted_at")
+  diagnosis      String?
+  healthStatus   String?   @map("health_status")
+  doctor         String?
+  treatment      String?
+  dischargedAt   DateTime? @map("discharged_at")
+  observations   String?
+  registeredById String?   @map("registered_by_id")
+  registeredBy   User?     @relation(fields: [registeredById], references: [id])
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([childId])
+  @@map("medical_records")
+}
+
+model FamilyMember {
+  id             String             @id @default(uuid())
+  childId        String             @map("child_id")
+  child          Child              @relation(fields: [childId], references: [id])
+  fullName       String             @map("full_name")
+  relationship   String
+  document       String?
+  phone          String?
+  whatsapp       String?
+  phoneHome      String?            @map("phone_home")
+  address        String?
+  email          String?
+  verifyStatus   FamilyVerifyStatus @default(UNVERIFIED) @map("verify_status")
+  observations   String?
+  registeredById String?            @map("registered_by_id")
+  registeredBy   User?              @relation(fields: [registeredById], references: [id])
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  @@index([childId])
+  @@index([document])
+  @@map("family_members")
+}
+
+model TimelineEvent {
+  id          String            @id @default(uuid())
+  childId     String            @map("child_id")
+  child       Child             @relation(fields: [childId], references: [id])
+  eventType   TimelineEventType @map("event_type")
+  description String
+  occurredAt  DateTime          @default(now()) @map("occurred_at")
+  userId      String?           @map("user_id")
+  user        User?             @relation(fields: [userId], references: [id])
+  metadata    Json?
+
+  @@index([childId])
+  @@index([occurredAt])
+  @@map("timeline_events")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  childId    String?  @map("child_id")
+  child      Child?   @relation(fields: [childId], references: [id])
+  fieldName  String?  @map("field_name")
+  oldValue   String?  @map("old_value")
+  newValue   String?  @map("new_value")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([childId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  childId   String?  @map("child_id")
+  child     Child?   @relation(fields: [childId], references: [id])
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@index([childId])
+  @@map("notifications")
+}
