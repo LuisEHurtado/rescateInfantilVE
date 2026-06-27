@@ -1223,6 +1223,7 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
     : null;
 
   const [imgError, setImgError] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [confirmNotes, setConfirmNotes] = useState('');
@@ -1244,6 +1245,22 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
   };
 
   return (
+    <>
+      {/* Lightbox — fuera del modal para evitar stacking context */}
+      {lightboxOpen && mainPhoto && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.95)' }}
+          onClick={() => setLightboxOpen(false)}>
+          <img src={mainPhoto.url ?? mainPhoto.thumbnailUrl}
+            className="max-w-full max-h-full rounded-xl shadow-2xl object-contain"
+            alt="" onClick={e => e.stopPropagation()} />
+          <button onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 w-9 h-9 bg-white/20 hover:bg-white/40 rounded-full flex items-center justify-center text-white text-lg transition-all">
+            ✕
+          </button>
+        </div>
+      )}
+
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       style={{ background: 'rgba(10,22,40,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}>
@@ -1258,8 +1275,17 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
         {/* Photo header */}
         <div className="relative h-56 bg-gray-100">
           {mainPhoto && !imgError ? (
-            <img src={mainPhoto.url ?? mainPhoto.thumbnailUrl} className="w-full h-full object-cover" alt=""
-              onError={() => setImgError(true)} />
+            <div className="w-full h-full cursor-zoom-in relative group" onClick={() => setLightboxOpen(true)}>
+              <img src={mainPhoto.url ?? mainPhoto.thumbnailUrl}
+                className="w-full h-full object-cover" alt=""
+                onError={() => setImgError(true)} />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+              {/* Badge siempre visible */}
+              <div className="absolute top-2 left-2 bg-black/50 rounded-lg px-2 py-1 flex items-center gap-1">
+                <Search size={11} className="text-white" />
+                <span className="text-white text-xs font-medium">Ver foto</span>
+              </div>
+            </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-6xl font-bold"
               style={{ background: `linear-gradient(135deg, ${D.navy} 0%, ${D.navy3} 100%)`, color: D.sky }}>
@@ -1267,7 +1293,7 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
             </div>
           )}
           {/* Gradient overlay */}
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(10,22,40,0.7) 0%, transparent 50%)' }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(10,22,40,0.7) 0%, transparent 50%)' }} />
           {/* Close button */}
           <button onClick={onClose}
             className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-gray-600 hover:bg-white transition-all shadow-sm">
@@ -1361,6 +1387,41 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
             )}
           </div>
 
+          {/* ── Contactos familiares ── */}
+          {child.familyMembers?.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Phone size={11} /> Contactos registrados
+              </p>
+              <div className="space-y-2">
+                {child.familyMembers.map((fm: any) => (
+                  <div key={fm.id} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#eff6ff' }}>
+                      <User size={13} style={{ color: D.blue }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800">{fm.fullName}</p>
+                      <p className="text-xs text-gray-400 capitalize">{fm.relationship}</p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {fm.phone && (
+                          <a href={`tel:${fm.phone}`} className="text-xs flex items-center gap-1 hover:opacity-70" style={{ color: D.blue }}>
+                            <Phone size={10} /> {fm.phone}
+                          </a>
+                        )}
+                        {fm.whatsapp && (
+                          <a href={`https://wa.me/${fm.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                            className="text-xs flex items-center gap-1 hover:opacity-70" style={{ color: '#25d366' }}>
+                            <MessageCircle size={10} /> WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── Compartir ── */}
           <div className="mt-4 flex gap-2">
             <button onClick={() => {
@@ -1434,6 +1495,7 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

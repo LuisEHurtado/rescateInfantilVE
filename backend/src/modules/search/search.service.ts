@@ -97,7 +97,7 @@ export class SearchService {
           currentLocation: true,
           findLocation: { select: { state: true, municipality: true } },
           photos: { where: { isMain: true }, take: 1 },
-          familyMembers: { select: { id: true, verifyStatus: true } },
+          familyMembers: { select: { id: true, fullName: true, relationship: true, phone: true, whatsapp: true, verifyStatus: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
