@@ -312,7 +312,7 @@ export function PublicHomePage() {
 
             {/* ── 3. Foto ── */}
             <FCard icon={<Camera size={17} style={{ color: '#0891b2' }} />} title="Fotografía del niño/a">
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} className="hidden" />
+              <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
               {photoPreview ? (
                 <div className="flex items-center gap-4">
                   <div className="w-28 h-28 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-green-200">
@@ -652,17 +652,20 @@ export function PublicHomePage() {
               <ShareSection compact />
             </div>
           </div>
-          {/* Disclaimer */}
+          {/* Disclaimer legal */}
           <div className="border-t mt-6 pt-5 text-center" style={{ borderColor: '#1e3a6b' }}>
-            <p className="text-xs font-semibold mb-1 text-white">Sistema Rescate Venezuela</p>
-            <p className="text-xs leading-relaxed text-white/70">
-              Esta es una herramienta ciudadana y no partidista. Ante una emergencia, llama siempre a los organismos de rescate oficiales.
-              Verifica la información antes de difundirla.
+            <p className="text-xs font-semibold mb-2 text-white">Aviso Legal</p>
+            <p className="text-xs leading-relaxed text-white/60 max-w-2xl mx-auto">
+              Esta plataforma es una iniciativa ciudadana, sin fines de lucro, creada para apoyar los derechos que contempla la{' '}
+              <span className="text-white/80 font-medium">Ley Orgánica de Protección del Niño, Niña y Adolescente (LOPNA)</span>.
+              La información registrada está a disposición de las autoridades competentes.
+              Los administradores de esta plataforma no se hacen responsables por daños o perjuicios ocasionados por el uso indebido de la misma.
+              Verifica siempre la información antes de difundirla.
             </p>
-            <p className="text-xs mt-2 text-white/50">
+            <p className="text-xs mt-3 text-white/40">
               ¿Tienes alguna duda o problema con el sitio?{' '}
               <a href="mailto:support@dinapos.cloud"
-                className="text-white hover:opacity-70 transition-opacity font-semibold">
+                className="text-white/70 hover:text-white transition-colors font-medium">
                 support@dinapos.cloud
               </a>
             </p>
