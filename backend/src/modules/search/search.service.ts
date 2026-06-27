@@ -17,6 +17,9 @@ export interface SearchParams {
   dateTo?: string;
   familyName?: string;
   familyDocument?: string;
+  skinColor?: string;
+  hairColor?: string;
+  eyeColor?: string;
   page?: number;
   limit?: number;
 }
@@ -71,6 +74,10 @@ export class SearchService {
         ...(params.municipality && { municipality: { contains: params.municipality, mode: 'insensitive' } }),
       };
     }
+
+    if (params.skinColor) where.skinColor = { contains: params.skinColor, mode: 'insensitive' };
+    if (params.hairColor) where.hairColor = { contains: params.hairColor, mode: 'insensitive' };
+    if (params.eyeColor)  where.eyeColor  = { contains: params.eyeColor,  mode: 'insensitive' };
 
     if (params.familyName || params.familyDocument) {
       where.familyMembers = {

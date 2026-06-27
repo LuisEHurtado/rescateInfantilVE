@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +12,8 @@ import { VENEZUELA_MUNICIPALITIES, VENEZUELA_STATES } from '../../data/venezuela
 import {
   Search, AlertTriangle, CheckCircle, Camera, Plus, Trash2,
   Phone, MapPin, User, Heart, ChevronDown, ChevronUp, Building2,
-  ArrowLeft, UserCheck, Copy, Download, Share2, QrCode, Calendar, Info
+  ArrowLeft, UserCheck, Copy, Download, Share2, QrCode, Calendar, Info,
+  LayoutGrid, LayoutList, SlidersHorizontal, MessageCircle
 } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -107,16 +109,46 @@ function ChildPhoto({ photos, sex }: { photos?: any[]; sex?: string }) {
   );
 }
 
+// ─── Physical filter options ──────────────────────────────────────
+const SKIN_COLORS  = ['Blanca', 'Clara', 'Trigueña', 'Morena', 'Oscura'];
+const HAIR_COLORS  = ['Negro', 'Castaño', 'Rubio', 'Rizado', 'Canoso', 'Pelirrojo'];
+const EYE_COLORS   = ['Marrones', 'Negros', 'Verdes', 'Azules', 'Claros', 'Grises'];
+
 // ─── Main component ───────────────────────────────────────────────
 export function PublicHomePage() {
+  const [urlSearchParams, setUrlSearchParams] = useSearchParams();
+
   const [mode, setMode] = useState<'search' | 'register' | 'success'>('search');
-  const [query, setQuery] = useState('');
-  const [searchState, setSearchState] = useState('');
-  const [searchMunicipality, setSearchMunicipality] = useState('');
-  const [searchParams, setSearchParams] = useState<any>({ page: 1, limit: 20 });
+  const [query, setQuery] = useState(() => urlSearchParams.get('q') || '');
+  const [searchState, setSearchState] = useState(() => urlSearchParams.get('state') || '');
+  const [searchMunicipality, setSearchMunicipality] = useState(() => urlSearchParams.get('municipality') || '');
+  const [statusFilter, setStatusFilter] = useState(() => urlSearchParams.get('status') || '');
+  const [skinColor, setSkinColor] = useState(() => urlSearchParams.get('skin') || '');
+  const [hairColor, setHairColor] = useState(() => urlSearchParams.get('hair') || '');
+  const [eyeColor, setEyeColor] = useState(() => urlSearchParams.get('eye') || '');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const buildApiParams = useCallback((overrides: any = {}) => ({
+    q: query || undefined,
+    state: searchState || undefined,
+    municipality: searchMunicipality || undefined,
+    caseStatus: statusFilter || undefined,
+    skinColor: skinColor || undefined,
+    hairColor: hairColor || undefined,
+    eyeColor: eyeColor || undefined,
+    page: 1, limit: 20,
+    ...overrides,
+  }), [query, searchState, searchMunicipality, statusFilter, skinColor, hairColor, eyeColor]);
+
+  const [searchParams, setSearchParams] = useState<any>(() => buildApiParams({
+    q: urlSearchParams.get('q') || undefined,
+    state: urlSearchParams.get('state') || undefined,
+    municipality: urlSearchParams.get('municipality') || undefined,
+    caseStatus: urlSearchParams.get('status') || undefined,
+  }));
   const [allResults, setAllResults] = useState<any[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState('');
   const [reportCaseType, setReportCaseType] = useState<'RESCUED' | 'LOST' | 'HOSPITAL' | 'UNIDENTIFIED'>('RESCUED');
   const [contacts, setContacts] = useState<ContactEntry[]>([emptyContact()]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -156,29 +188,49 @@ export function PublicHomePage() {
   const selectedState = watch('state');
   const municipalities = VENEZUELA_MUNICIPALITIES[selectedState] ?? [];
 
+  const syncUrl = useCallback((params: any) => {
+    const p = new URLSearchParams();
+    if (params.q)            p.set('q', params.q);
+    if (params.state)        p.set('state', params.state);
+    if (params.municipality) p.set('municipality', params.municipality);
+    if (params.caseStatus)   p.set('status', params.caseStatus);
+    if (params.skinColor)    p.set('skin', params.skinColor);
+    if (params.hairColor)    p.set('hair', params.hairColor);
+    if (params.eyeColor)     p.set('eye', params.eyeColor);
+    setUrlSearchParams(p, { replace: true });
+  }, [setUrlSearchParams]);
+
   const handleSearch = useCallback(() => {
-    setSearchParams({
+    const params = {
       q: query || undefined,
       state: searchState || undefined,
       municipality: searchMunicipality || undefined,
       caseStatus: statusFilter || undefined,
+      skinColor: skinColor || undefined,
+      hairColor: hairColor || undefined,
+      eyeColor: eyeColor || undefined,
       page: 1, limit: 20,
-    });
-  }, [query, searchState, searchMunicipality, statusFilter]);
+    };
+    setSearchParams(params);
+    syncUrl(params);
+  }, [query, searchState, searchMunicipality, statusFilter, skinColor, hairColor, eyeColor, syncUrl]);
 
-  // Debounce en el input — busca automáticamente 600ms después de dejar de escribir
   const handleQueryChange = (val: string) => {
     setQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      setSearchParams((prev: any) => ({ ...prev, q: val || undefined, page: 1 }));
+      const params = { ...buildApiParams(), q: val || undefined, page: 1 };
+      setSearchParams(params);
+      syncUrl(params);
     }, 600);
   };
 
   const handleStatusFilter = useCallback((status: string) => {
     setStatusFilter(status);
-    setSearchParams((prev: any) => ({ ...prev, caseStatus: status || undefined, page: 1 }));
-  }, []);
+    const params = { ...buildApiParams(), caseStatus: status || undefined, page: 1 };
+    setSearchParams(params);
+    syncUrl(params);
+  }, [buildApiParams, syncUrl]);
 
   const loadMore = () => {
     setSearchParams((prev: any) => ({ ...prev, page: (prev.page || 1) + 1 }));
@@ -522,7 +574,7 @@ export function PublicHomePage() {
   const total        = stats?.total        ?? 0;
   const hospitalized = stats?.hospitalized ?? 0;
   const reunified    = stats?.reunified    ?? 0;
-  const hasActiveSearch = !!(searchParams.q || searchParams.state || searchParams.caseStatus);
+  const hasActiveSearch = !!(searchParams.q || searchParams.state || searchParams.caseStatus || searchParams.skinColor || searchParams.hairColor || searchParams.eyeColor);
   const hasMore = searchData ? allResults.length < searchData.total : false;
 
   return (
@@ -597,13 +649,59 @@ export function PublicHomePage() {
                 {isFetching ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Search size={14} />}
                 <span className="hidden sm:inline">Buscar</span>
               </button>
-              {(query || searchState) && (
-                <button onClick={() => { setQuery(''); setSearchState(''); setSearchMunicipality(''); setSearchParams({ page: 1, limit: 20 }); }}
+              {(query || searchState || skinColor || hairColor || eyeColor) && (
+                <button onClick={() => {
+                  setQuery(''); setSearchState(''); setSearchMunicipality('');
+                  setSkinColor(''); setHairColor(''); setEyeColor(''); setStatusFilter('');
+                  const p = { page: 1, limit: 20 };
+                  setSearchParams(p); setUrlSearchParams({}, { replace: true });
+                }}
                   className="px-3 py-2.5 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/10 transition-all flex-shrink-0">
                   ✕
                 </button>
               )}
             </div>
+          </div>
+          {/* Filtros físicos */}
+          <div className="mt-1">
+            <button onClick={() => setShowAdvanced(v => !v)}
+              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all ${
+                showAdvanced || skinColor || hairColor || eyeColor
+                  ? 'bg-white/20 text-white font-semibold'
+                  : 'text-white/50 hover:text-white/80 hover:bg-white/10'
+              }`}>
+              <SlidersHorizontal size={12} />
+              Filtros físicos
+              {(skinColor || hairColor || eyeColor) && (
+                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 flex-shrink-0" />
+              )}
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-2 p-3 bg-white/10 rounded-xl grid grid-cols-3 gap-2">
+                {([
+                  { label: 'Tez / Piel', opts: SKIN_COLORS, val: skinColor, set: setSkinColor, key: 'skin' },
+                  { label: 'Cabello', opts: HAIR_COLORS, val: hairColor, set: setHairColor, key: 'hair' },
+                  { label: 'Ojos', opts: EYE_COLORS, val: eyeColor, set: setEyeColor, key: 'eye' },
+                ] as const).map(({ label, opts, val, set }) => (
+                  <div key={label}>
+                    <p className="text-xs text-white/50 mb-1 font-medium">{label}</p>
+                    <select value={val} onChange={e => { set(e.target.value); }}
+                      className="w-full px-2 py-2 bg-white/10 rounded-lg text-xs text-white/80 focus:outline-none focus:bg-white/20">
+                      <option value="" className="text-gray-800">Cualquiera</option>
+                      {opts.map(o => <option key={o} value={o} className="text-gray-800">{o}</option>)}
+                    </select>
+                  </div>
+                ))}
+                <div className="col-span-3 flex justify-end mt-1">
+                  <button onClick={handleSearch}
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
+                    style={{ background: D.blue }}>
+                    Aplicar filtros físicos
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -637,8 +735,20 @@ export function PublicHomePage() {
               {searchData?.total != null && <>{searchData.total} registro{searchData.total !== 1 ? 's' : ''}</>}
             </span>
           </div>
-          {/* Botón registrar — fila separada en móvil */}
-          <div className="mt-2 flex justify-end">
+          {/* Fila 2: registrar + toggle vista */}
+          <div className="mt-2 flex items-center justify-between">
+            <div className="flex items-center gap-1 bg-white rounded-xl p-0.5 border border-gray-200 shadow-sm">
+              <button onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Vista cuadrícula">
+                <LayoutGrid size={15} />
+              </button>
+              <button onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Vista lista">
+                <LayoutList size={15} />
+              </button>
+            </div>
             <button onClick={() => setMode('register')}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 shadow-sm"
               style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}>
@@ -656,13 +766,22 @@ export function PublicHomePage() {
             </div>
           ) : allResults.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {allResults.map((child: any) => (
-                  <ChildGridCard key={child.id} child={child}
-                    selected={expandedId === child.id}
-                    onClick={() => setExpandedId(expandedId === child.id ? null : child.id)} />
-                ))}
-              </div>
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {allResults.map((child: any) => (
+                    <ChildGridCard key={child.id} child={child}
+                      selected={expandedId === child.id}
+                      onClick={() => setExpandedId(expandedId === child.id ? null : child.id)} />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {allResults.map((child: any) => (
+                    <ChildListRow key={child.id} child={child}
+                      onClick={() => setExpandedId(expandedId === child.id ? null : child.id)} />
+                  ))}
+                </div>
+              )}
               {hasMore && (
                 <div className="flex justify-center mt-6">
                   <button onClick={loadMore} disabled={isFetching}
@@ -923,6 +1042,29 @@ function ChildModal({ child, onClose }: { child: any; onClose: () => void }) {
             )}
           </div>
 
+          {/* ── Compartir ── */}
+          <div className="mt-4 flex gap-2">
+            <button onClick={() => {
+              const nameStr = [child.firstName, child.lastName].filter(Boolean).join(' ') || 'Sin nombre registrado';
+              const loc = child.findLocation ? `${child.findLocation.municipality}, ${child.findLocation.state}` : '';
+              const url = `${window.location.origin}/?q=${child.code}`;
+              const text = `🆘 Niño/a encontrado — ${nameStr}\nCódigo: *${child.code}*\nEstado: ${statusMap[child.caseStatus]?.label ?? child.caseStatus}${loc ? `\nUbicación: ${loc}` : ''}\nVer ficha completa: ${url}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+              style={{ background: '#25d366' }}>
+              <MessageCircle size={15} /> WhatsApp
+            </button>
+            <button onClick={() => {
+              const url = `${window.location.origin}/?q=${child.code}`;
+              navigator.clipboard.writeText(url);
+              toast.success('Enlace copiado');
+            }}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all">
+              <Copy size={14} /> Copiar enlace
+            </button>
+          </div>
+
           {/* ── Confirmar situación ── */}
           <div className="mt-4 pt-4 border-t border-gray-100">
             {confirmDone ? (
@@ -1126,6 +1268,83 @@ function ResultCard({ child, expanded, onToggle }: { child: any; expanded: boole
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── List row ─────────────────────────────────────────────────────
+function ChildListRow({ child, onClick }: { child: any; onClick: () => void }) {
+  const mainPhoto = child.photos?.find((p: any) => p.isMain) ?? child.photos?.[0];
+  const [imgError, setImgError] = useState(false);
+  const name = [child.firstName, child.lastName].filter(Boolean).join(' ') || null;
+  const dotColor = STATUS_DOT[child.caseStatus] ?? '#94a3b8';
+  const statusLabel = statusMap[child.caseStatus]?.label ?? child.caseStatus;
+
+  return (
+    <div onClick={onClick}
+      className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer flex items-center gap-3 p-3">
+      {/* Foto */}
+      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-blue-50">
+        {mainPhoto && !imgError ? (
+          <img src={mainPhoto.thumbnailUrl ?? mainPhoto.url} className="w-full h-full object-cover" alt=""
+            onError={() => setImgError(true)} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <User size={18} className={child.sex === 'MALE' ? 'text-blue-300' : child.sex === 'FEMALE' ? 'text-pink-300' : 'text-gray-300'} />
+          </div>
+        )}
+      </div>
+
+      {/* Info principal */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-xs font-bold" style={{ color: D.blue }}>{child.code}</span>
+          <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: `${dotColor}18`, color: dotColor }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
+            {statusLabel}
+          </span>
+        </div>
+        <p className="text-sm font-semibold text-gray-800 truncate mt-0.5">
+          {name ?? <span className="italic text-gray-400 font-normal text-xs">Sin nombre registrado</span>}
+        </p>
+        <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5 flex-wrap">
+          {child.sex !== 'UNDETERMINED' && <span>{child.sex === 'MALE' ? 'Masc.' : 'Fem.'}</span>}
+          {child.approximateAge != null && <span>~{child.approximateAge} años</span>}
+          {child.findLocation && (
+            <span className="flex items-center gap-0.5 truncate">
+              <MapPin size={9} className="flex-shrink-0" />
+              {child.findLocation.municipality}, {child.findLocation.state}
+            </span>
+          )}
+          {child.currentLocation?.hospital && (
+            <span className="flex items-center gap-0.5 truncate">
+              <Building2 size={9} className="flex-shrink-0" /> {child.currentLocation.hospital}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Acciones rápidas */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <button onClick={e => {
+          e.stopPropagation();
+          navigator.clipboard.writeText(child.code);
+          toast.success('Código copiado');
+        }} className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all" title="Copiar código">
+          <Copy size={13} />
+        </button>
+        <button onClick={e => {
+          e.stopPropagation();
+          const name2 = [child.firstName, child.lastName].filter(Boolean).join(' ') || 'Sin nombre';
+          const url = `${window.location.origin}/?q=${child.code}`;
+          const text = `🆘 Niño/a encontrado — ${name2}\nCódigo: *${child.code}*\nEstado: ${statusMap[child.caseStatus]?.label ?? child.caseStatus}\nVer: ${url}`;
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        }} className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-all" title="Compartir por WhatsApp">
+          <MessageCircle size={13} />
+        </button>
+        <ChevronDown size={14} className="text-gray-300 ml-1" />
+      </div>
     </div>
   );
 }

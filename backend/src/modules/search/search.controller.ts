@@ -43,6 +43,9 @@ export class SearchController {
     @Query('dateTo') dateTo?: string,
     @Query('familyName') familyName?: string,
     @Query('familyDocument') familyDocument?: string,
+    @Query('skinColor') skinColor?: string,
+    @Query('hairColor') hairColor?: string,
+    @Query('eyeColor') eyeColor?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -58,6 +61,9 @@ export class SearchController {
     if (hospital) filters.hospital = hospital;
     if (state) filters.state = state;
     if (municipality) filters.municipality = municipality;
+    if (skinColor) filters.skinColor = skinColor;
+    if (hairColor) filters.hairColor = hairColor;
+    if (eyeColor) filters.eyeColor = eyeColor;
 
     // Solo loguear página 1 para no inflar el conteo
     if (!page || page === '1') {
@@ -72,7 +78,7 @@ export class SearchController {
 
     return this.service.search({
       q, sex, caseStatus, identityStatus, hospital, state, municipality,
-      rescueOrg, familyName, familyDocument,
+      rescueOrg, familyName, familyDocument, skinColor, hairColor, eyeColor,
       ageMin: ageMin ? +ageMin : undefined,
       ageMax: ageMax ? +ageMax : undefined,
       dateFrom, dateTo,
