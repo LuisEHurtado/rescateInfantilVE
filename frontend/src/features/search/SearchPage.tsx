@@ -96,7 +96,7 @@ export function SearchPage() {
         ) : data?.data?.length ? (
           <div className="divide-y divide-gray-100">
             {data.data.map((child: any) => (
-              <button key={child.id} onClick={() => navigate(`/expedientes/${child.id}`)} className="w-full flex items-center gap-4 px-5 py-4 hover:bg-blue-50 transition-colors text-left">
+              <button key={child.id} onClick={() => navigate(`/panel/expedientes/${child.id}`)} className="w-full flex items-center gap-4 px-5 py-4 hover:bg-blue-50 transition-colors text-left">
                 <ChildAvatar photos={child.photos} sex={child.sex} size="md" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

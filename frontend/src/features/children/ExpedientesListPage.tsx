@@ -25,7 +25,7 @@ export function ExpedientesListPage() {
           <h1 className="text-2xl font-bold text-gray-900">Expedientes</h1>
           <p className="text-sm text-gray-500 mt-0.5">{data?.total ?? 0} registros totales</p>
         </div>
-        <Button onClick={() => navigate('/registrar')} size="lg">
+        <Button onClick={() => navigate('/panel/registrar')} size="lg">
           <PlusCircle size={18} /> Registrar Niño
         </Button>
       </div>
@@ -49,7 +49,7 @@ export function ExpedientesListPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {data?.data.map(child => (
-                <tr key={child.id} onClick={() => navigate(`/expedientes/${child.id}`)} className="hover:bg-blue-50 cursor-pointer transition-colors">
+                <tr key={child.id} onClick={() => navigate(`/panel/expedientes/${child.id}`)} className="hover:bg-blue-50 cursor-pointer transition-colors">
                   <td className="px-4 py-3">
                     <ChildAvatar photos={child.photos} sex={child.sex} size="sm" />
                   </td>

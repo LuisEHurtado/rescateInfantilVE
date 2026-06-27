@@ -95,11 +95,11 @@ export function DashboardPage() {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">Últimos Registros</h3>
-            <button onClick={() => navigate('/expedientes')} className="text-xs text-blue-600 hover:underline">Ver todos</button>
+            <button onClick={() => navigate('/panel/expedientes')} className="text-xs text-blue-600 hover:underline">Ver todos</button>
           </div>
           <div className="divide-y divide-gray-50">
             {recent?.slice(0, 6).map(child => (
-              <button key={child.id} onClick={() => navigate(`/expedientes/${child.id}`)} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors text-left">
+              <button key={child.id} onClick={() => navigate(`/panel/expedientes/${child.id}`)} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors text-left">
                 <ChildAvatar photos={child.photos} sex={child.sex} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{child.code}</p>

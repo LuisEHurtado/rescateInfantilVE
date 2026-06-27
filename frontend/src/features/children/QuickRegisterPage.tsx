@@ -68,7 +68,7 @@ export function QuickRegisterPage() {
       }
 
       toast.success(`Niño registrado: ${child.code}`);
-      navigate(`/expedientes/${child.id}`);
+      navigate(`/panel/expedientes/${child.id}`);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al registrar. Intente nuevamente.');
     }
