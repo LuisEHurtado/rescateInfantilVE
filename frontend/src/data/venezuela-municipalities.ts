@@ -8,7 +8,7 @@ export const VENEZUELA_MUNICIPALITIES: Record<string, string[]> = {
   'Carabobo': ['Bejuma', 'Carlos Arvelo', 'Diego Ibarra', 'Guacara', 'Juan José Mora', 'Libertador', 'Los Guayos', 'Miranda', 'Montalbán', 'Naguanagua', 'Puerto Cabello', 'San Diego', 'San Joaquín', 'Valencia'],
   'Cojedes': ['Anzoátegui', 'Falcón', 'Girardot', 'Lima Blanco', 'Pao de San Juan Bautista', 'Ricaurte', 'Rómulo Gallegos', 'San Carlos', 'Tinaco'],
   'Delta Amacuro': ['Antonio Díaz', 'Casacoima', 'Pedernales', 'Tucupita'],
-  'Distrito Capital': ['Libertador'],
+  'Distrito Capital': ['Libertador', 'Altagracia', 'Antimano', 'Candelaria', 'Caricuao', 'Catedral', 'Coche', 'El Junquito', 'El Paraíso', 'El Recreo', 'El Valle', 'Gramoven', 'La Pastora', 'La Vega', 'Macarao', 'San Agustín', 'San Bernardino', 'San José', 'San Juan', 'San Pedro', 'Santa Rosalía', 'Santa Teresa', 'Sucre (23 de Enero)'],
   'Falcón': ['Acosta', 'Bolívar', 'Buchivacoa', 'Carirubana', 'Colina', 'Dabajuro', 'Democracia', 'Falcón', 'Federación', 'Iturriza', 'Jacura', 'Los Taques', 'Mauroa', 'Miranda', 'Palmasola', 'Petit', 'Piritu', 'San Francisco', 'Sucre', 'Silva', 'Toledo', 'Unión', 'Urumaco', 'Zamora'],
   'Guárico': ['Campo Elías', 'Camaguan', 'Chaguaramas', 'El Socorro', 'Francisco de Miranda', 'José Félix Ribas', 'José Tadeo Monagas', 'Juan Germán Roscio', 'Julián Mellado', 'Las Mercedes', 'Leonardo Infante', 'Monagas', 'San Gerónimo de Guayabal', 'Santa María de Ipire', 'Zaraza'],
   'Lara': ['Andrés Eloy Blanco', 'Crespo', 'Iribarren', 'Jiménez', 'Morán', 'Palavecino', 'Simón Planas', 'Torres', 'Urdaneta'],
@@ -20,7 +20,7 @@ export const VENEZUELA_MUNICIPALITIES: Record<string, string[]> = {
   'Sucre': ['Andrés Eloy Blanco', 'Arismendi', 'Benítez', 'Bermúdez', 'Bolívar', 'Cruz Salmerón Acosta', 'Cajigal', 'Libertador', 'Mariño', 'Mejías', 'Montes', 'Ribero', 'Sucre', 'Valdez'],
   'Táchira': ['Andrés Bello', 'Ayacucho', 'Bolívar', 'Cárdenas', 'Córdoba', 'Fernández Feo', 'Francisco de Miranda', 'García de Hevia', 'Guásimos', 'Independencia', 'Jáuregui', 'José María Vargas', 'Junín', 'Libertad', 'Libertador', 'Lobatera', 'Michelena', 'Panamericano', 'Pedro María Ureña', 'Rafael Urdaneta', 'Samuel Darío Maldonado', 'San Cristóbal', 'Seboruco', 'Simón Rodríguez', 'Sucre', 'Torbes', 'Uribante'],
   'Trujillo': ['Andrés Bello', 'Boconó', 'Bolívar', 'Candelaria', 'Carache', 'Escuque', 'José Felipe Márquez Cañizales', 'La Ceiba', 'Miranda', 'Monte Carmelo', 'Motatán', 'Pampán', 'Pampanito', 'Rafael Rangel', 'Sucre', 'Trujillo', 'Urdaneta', 'Valera'],
-  'Vargas': ['Vargas'],
+  'Vargas': ['Vargas', 'Carayaca', 'Carlos Soublette', 'Caruao', 'Diego Bautista Urbaneja', 'El Junko', 'Macuto', 'Maiquetía', 'Naiguatá', 'Raúl Leoni', 'Simón Bolívar'],
   'Yaracuy': ['Arístides Bastidas', 'Bolívar', 'Bruzual', 'Cocorote', 'Independencia', 'La Trinidad', 'Manuel Monge', 'Nirgua', 'Peña', 'San Felipe', 'Sucre', 'Urachiche', 'Vereos'],
   'Zulia': ['Almirante Padilla', 'Baralt', 'Cabimas', 'Catatumbo', 'Colón', 'Jesús Enrique Lossada', 'Jesús María Semprún', 'La Cañada de Urdaneta', 'Lagunillas', 'Machiques de Perijá', 'Mara', 'Maracaibo', 'Miranda', 'Páez', 'Rosario de Perijá', 'San Francisco', 'Santa Rita', 'Simón Bolívar', 'Sucre', 'Valmore Rodríguez'],
 };
