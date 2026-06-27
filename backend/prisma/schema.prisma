@@ -330,3 +330,17 @@ model Notification {
   @@index([childId])
   @@map("notifications")
 }
+
+model VisitLog {
+  id          String   @id @default(uuid())
+  ip          String
+  userAgent   String?  @map("user_agent")
+  searchQuery String?  @map("search_query")
+  filters     Json?
+  isMobile    Boolean  @default(false) @map("is_mobile")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([ip])
+  @@map("visit_logs")
+}
