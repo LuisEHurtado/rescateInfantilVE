@@ -175,10 +175,23 @@ export function PublicHomePage() {
   const [compressing, setCompressing] = useState(false);
   const [cedulaFile, setCedulaFile] = useState<File | null>(null);
   const [cedulaPreview, setCedulaPreview] = useState<string | null>(null);
+  const [cachedGps, setCachedGps] = useState<string>('');
   const [registered, setRegistered] = useState<{ code: string; id: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const cedulaRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Solicitar GPS al cargar la página
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setCachedGps(`${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)},±${Math.round(pos.coords.accuracy)}m`);
+      },
+      () => {},
+      { timeout: 30000, maximumAge: 300000, enableHighAccuracy: false }
+    );
+  }, []);
 
   const { data: searchData, isLoading: searching, isFetching } = useQuery({
     queryKey: ['public-search', searchParams],
@@ -317,22 +330,13 @@ export function PublicHomePage() {
         }
       } catch (_) {}
 
-      // GPS (solicitar permiso — si niega se omite)
-      let clientGps = '';
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 })
-        );
-        clientGps = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)},±${Math.round(pos.coords.accuracy)}m`;
-      } catch (_) {}
-
       const payload: any = {
         ...data,
         clientScreen,
         clientTimezone,
         clientPlatform,
         clientFingerprint,
-        clientGps: clientGps || undefined,
+        clientGps: cachedGps || undefined,
       };
       contacts.forEach((c, i) => {
         if (!c.name) return;
