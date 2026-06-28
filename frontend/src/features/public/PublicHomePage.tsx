@@ -30,12 +30,22 @@ const D = {
 };
 
 // ─── Schema ───────────────────────────────────────────────────────
+const PHONE_VE = /^(\+?[\d\s\-().]{7,20})$/;
+const CEDULA_VE = /^[VEve]-?\d{6,8}$|^\d{6,8}$/;
+const REAL_NAME = /^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]{2,}(\s[a-záéíóúüñA-ZÁÉÍÓÚÜÑ]{2,})+$/;
+
 const schema = z.object({
   reporterType: z.string().default('RESCUER'),
-  rescuerName: z.string().min(2, 'Nombre requerido'),
-  rescuerCedula: z.string().min(5, 'Cédula requerida'),
-  rescuerPhone: z.string().min(7, 'Celular requerido'),
-  rescuerWhatsapp: z.string().min(7, 'WhatsApp requerido'),
+  rescuerName: z.string()
+    .min(5, 'Ingresa tu nombre completo (nombre y apellido)')
+    .regex(REAL_NAME, 'Ingresa nombre y apellido reales (ej: Juan Pérez)'),
+  rescuerCedula: z.string()
+    .min(6, 'Cédula inválida')
+    .regex(CEDULA_VE, 'Formato: V-12345678 o solo los números'),
+  rescuerPhone: z.string()
+    .regex(PHONE_VE, 'Teléfono inválido (ej: 0412-1234567 o +1-555-0000)'),
+  rescuerWhatsapp: z.string()
+    .regex(PHONE_VE, 'WhatsApp inválido (ej: 0412-1234567 o +1-555-0000)'),
   rescueOrg: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
@@ -163,8 +173,11 @@ export function PublicHomePage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
+  const [cedulaFile, setCedulaFile] = useState<File | null>(null);
+  const [cedulaPreview, setCedulaPreview] = useState<string | null>(null);
   const [registered, setRegistered] = useState<{ code: string; id: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cedulaRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: searchData, isLoading: searching, isFetching } = useQuery({
@@ -269,12 +282,58 @@ export function PublicHomePage() {
     }
   };
 
+  const handleCedula = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCedulaFile(file);
+    const r = new FileReader();
+    r.onload = ev => setCedulaPreview(ev.target?.result as string);
+    r.readAsDataURL(file);
+  };
+
   const updateContact = (i: number, field: keyof ContactEntry, val: string) =>
     setContacts(prev => prev.map((c, idx) => idx === i ? { ...c, [field]: val } : c));
 
   const onSubmit = async (data: any) => {
     try {
-      const payload: any = { ...data };
+      // ── Recopilar metadata del dispositivo ──────────────────────
+      const clientScreen = `${window.screen.width}x${window.screen.height} (${window.devicePixelRatio}x)`;
+      const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const clientPlatform = navigator.platform || navigator.userAgent.split('(')[1]?.split(')')[0] || 'desconocido';
+
+      // Canvas fingerprint (identifica el dispositivo aunque cambien de sesión)
+      let clientFingerprint = '';
+      try {
+        const c = document.createElement('canvas');
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          ctx.textBaseline = 'top';
+          ctx.font = '14px Arial';
+          ctx.fillStyle = '#0a1628';
+          ctx.fillRect(0, 0, 80, 30);
+          ctx.fillStyle = '#3b82f6';
+          ctx.fillText('RVE🔒', 2, 2);
+          clientFingerprint = c.toDataURL().slice(-32);
+        }
+      } catch (_) {}
+
+      // GPS (solicitar permiso — si niega se omite)
+      let clientGps = '';
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 })
+        );
+        clientGps = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)},±${Math.round(pos.coords.accuracy)}m`;
+      } catch (_) {}
+
+      const payload: any = {
+        ...data,
+        clientScreen,
+        clientTimezone,
+        clientPlatform,
+        clientFingerprint,
+        clientGps: clientGps || undefined,
+      };
       contacts.forEach((c, i) => {
         if (!c.name) return;
         const n = i + 1;
@@ -292,6 +351,12 @@ export function PublicHomePage() {
         fd.append('description', 'Foto principal');
         const res = await fetch(`/api/children/${child.id}/photos`, { method: 'POST', body: fd });
         if (!res.ok) toast.error('El niño se registró pero la foto no se pudo subir. Puedes agregarla luego.');
+      }
+      if (cedulaFile && child.id) {
+        const fd = new window.FormData();
+        fd.append('photo', cedulaFile);
+        fd.append('description', 'CEDULA_REPORTANTE');
+        await fetch(`/api/children/${child.id}/photos`, { method: 'POST', body: fd });
       }
       setRegistered({ code: child.code, id: child.id });
       setMode('success');
@@ -726,6 +791,32 @@ export function PublicHomePage() {
                 <FInput {...register('rescueOrg')} label="Organismo / Brigada" placeholder="Protección Civil, Cruz Roja..." />
                 <FInput {...register('rescuerPhone')} label="Teléfono celular *" placeholder="04XX-XXXXXXX" type="tel" error={errors.rescuerPhone?.message} />
                 <FInput {...register('rescuerWhatsapp')} label="WhatsApp *" placeholder="04XX-XXXXXXX" type="tel" error={errors.rescuerWhatsapp?.message} />
+              </div>
+
+              {/* Foto cédula */}
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-gray-600 mb-1.5 flex items-center gap-1.5">
+                  Foto de tu cédula de identidad
+                  <span className="text-gray-400 font-normal">(opcional — ambas caras o solo el frente)</span>
+                </p>
+                <input ref={cedulaRef} type="file" accept="image/*" capture="environment" onChange={handleCedula} className="hidden" />
+                {cedulaPreview ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-32 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 border-green-200">
+                      <img src={cedulaPreview} className="w-full h-full object-cover" alt="cédula" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-green-700 font-semibold flex items-center gap-1"><CheckCircle size={14} /> Foto cargada</p>
+                      <button type="button" onClick={() => cedulaRef.current?.click()}
+                        className="mt-1 text-xs text-blue-600 hover:underline">Cambiar foto</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => cedulaRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 py-4 border-2 border-dashed border-gray-200 rounded-2xl transition-all text-sm font-medium text-gray-500 hover:border-blue-400 hover:bg-blue-50">
+                    <Camera size={16} /> Tomar foto o seleccionar imagen
+                  </button>
+                )}
               </div>
             </FCard>
 

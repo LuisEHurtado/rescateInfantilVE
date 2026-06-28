@@ -121,6 +121,14 @@ model Child {
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
+  // Registration metadata (security/forensics)
+  registrationIp      String?  @map("registration_ip")
+  registrationUa      String?  @map("registration_ua")
+  registrationLang    String?  @map("registration_lang")
+  registrationGpsBrowser String? @map("registration_gps_browser")
+  registrationGpsIp   String?  @map("registration_gps_ip")
+  registrationMeta    Json?    @map("registration_meta")
+
   // Extra contact fields
   cedula          String?
   rescuerPhone    String?  @map("rescuer_phone")

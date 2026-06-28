@@ -210,4 +210,30 @@ export class QuickRegisterDto {
   @IsOptional()
   @IsString()
   contact3Cedula?: string;
+
+  // === Metadata de registro (enviada por el frontend) ===
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  clientGps?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  clientFingerprint?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  clientScreen?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  clientTimezone?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  clientPlatform?: string;
 }

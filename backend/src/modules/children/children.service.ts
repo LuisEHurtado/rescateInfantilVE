@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import * as geoip from 'geoip-lite';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { TimelineService } from '../timeline/timeline.service';
@@ -19,7 +20,7 @@ export class ChildrenService {
     private notifications: NotificationsService,
   ) {}
 
-  async quickRegister(dto: QuickRegisterDto, userId?: string, ip = 'desconocida') {
+  async quickRegister(dto: QuickRegisterDto, userId?: string, ip = 'desconocida', ua?: string | null, lang?: string | null) {
     // Validar token de emergencia si se proporcionó uno
     if (!userId && dto.emergencyToken) {
       const valid = await this.authService.validateEmergencyToken(dto.emergencyToken);
@@ -49,6 +50,22 @@ export class ChildrenService {
         rescuerWhatsapp: dto.rescuerWhatsapp,
         reporterType: dto.reporterType,
         registeredById: userId || null,
+        registrationIp: ip,
+        registrationUa: ua || null,
+        registrationLang: lang || null,
+        registrationGpsBrowser: dto.clientGps || null,
+        registrationGpsIp: (() => {
+          const cleanIp = ip.replace('::ffff:', '');
+          const geo = geoip.lookup(cleanIp);
+          if (!geo) return null;
+          return `${geo.ll[0]},${geo.ll[1]} | ${geo.city || '?'}, ${geo.region || '?'}, ${geo.country} | tz:${geo.timezone}`;
+        })(),
+        registrationMeta: {
+          fingerprint: dto.clientFingerprint || null,
+          screen: dto.clientScreen || null,
+          timezone: dto.clientTimezone || null,
+          platform: dto.clientPlatform || null,
+        },
         findLocation: {
           create: {
             state: dto.state,

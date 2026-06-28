@@ -30,8 +30,13 @@ export class ChildrenController {
   @ApiOperation({ summary: 'Registro rápido (con sesión o con token de emergencia)' })
   quickRegister(@Body() dto: QuickRegisterDto, @Request() req: any) {
     const userId = req.user?.id;
-    const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'desconocida';
-    return this.childrenService.quickRegister(dto, userId, ip as string);
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      || req.headers['x-real-ip']
+      || req.socket?.remoteAddress
+      || 'desconocida';
+    const ua   = req.headers['user-agent'] || null;
+    const lang = req.headers['accept-language']?.split(',')[0] || null;
+    return this.childrenService.quickRegister(dto, userId, ip as string, ua, lang);
   }
 
   @Get()
