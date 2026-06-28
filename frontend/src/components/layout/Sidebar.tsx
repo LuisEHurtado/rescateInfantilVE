@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, Search, FileText, Users, Settings, LogOut, Bell, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Search, FileText, Users, Settings, LogOut, AlertTriangle, X } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { roleLabel } from '../../utils/labels';
 
@@ -15,15 +15,16 @@ const adminItems = [
   { to: '/panel/tokens', icon: Settings, label: 'Tokens Emergencia' },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const { user, logout } = useAuthStore();
 
   return (
-    <aside className="fixed top-0 left-0 h-full w-64 bg-slate-900 text-white flex flex-col z-40">
+    <aside className={`fixed top-0 left-0 h-full w-64 bg-slate-900 text-white flex flex-col z-40 transition-transform duration-300 ease-in-out
+      ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-slate-700">
+      <div className="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0">
             <AlertTriangle size={20} className="text-white" />
           </div>
           <div>
@@ -31,6 +32,10 @@ export function Sidebar() {
             <p className="text-xs text-slate-400">Venezuela</p>
           </div>
         </div>
+        <button onClick={onClose}
+          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+          <X size={16} />
+        </button>
       </div>
 
       {/* Nav */}
@@ -39,6 +44,7 @@ export function Sidebar() {
           <NavLink
             key={to}
             to={to}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
                 highlight
@@ -65,6 +71,7 @@ export function Sidebar() {
               <NavLink
                 key={to}
                 to={to}
+                onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
