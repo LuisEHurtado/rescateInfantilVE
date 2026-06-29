@@ -673,7 +673,7 @@ export function PublicHomePage() {
                 <p className="text-xs text-blue-800 font-semibold mb-1">¿Crees que hay una coincidencia?</p>
                 <p className="text-xs text-blue-600">
                   Comunícate con las autoridades o el hospital indicado. No entregues a ningún niño sin verificación oficial.
-                  Para más información: <a href="mailto:support@dinapos.cloud" className="underline">support@dinapos.cloud</a>
+                  Para más información: <a href="mailto:Rescateinfantilvenezuela@gmail.com" className="underline">Rescateinfantilvenezuela@gmail.com</a>
                 </p>
               </div>
             </>
@@ -1267,9 +1267,9 @@ export function PublicHomePage() {
             </p>
             <p className="text-xs mt-3 text-white/40">
               ¿Tienes alguna duda o problema con el sitio?{' '}
-              <a href="mailto:support@dinapos.cloud"
+              <a href="mailto:Rescateinfantilvenezuela@gmail.com"
                 className="text-white/70 hover:text-white transition-colors font-medium">
-                support@dinapos.cloud
+                Rescateinfantilvenezuela@gmail.com
               </a>
             </p>
           </div>
