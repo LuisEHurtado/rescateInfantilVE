@@ -33,7 +33,7 @@ export class SearchService {
     const limit = params.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.ChildWhereInput = { isActive: true };
+    const where: Prisma.ChildWhereInput = { isActive: true, status: 1 };
 
     if (params.q) {
       where.OR = [
@@ -109,12 +109,12 @@ export class SearchService {
 
   async getStats() {
     const [total, hospitalized, reunified, identified, unidentified, inObservation] = await Promise.all([
-      this.prisma.child.count({ where: { isActive: true } }),
-      this.prisma.child.count({ where: { isActive: true, caseStatus: 'HOSPITALIZED' } }),
-      this.prisma.child.count({ where: { isActive: true, caseStatus: 'REUNIFIED' } }),
-      this.prisma.child.count({ where: { isActive: true, caseStatus: 'IDENTIFIED' } }),
-      this.prisma.child.count({ where: { isActive: true, caseStatus: 'UNIDENTIFIED' } }),
-      this.prisma.child.count({ where: { isActive: true, caseStatus: 'IN_OBSERVATION' } }),
+      this.prisma.child.count({ where: { isActive: true, status: 1 } }),
+      this.prisma.child.count({ where: { isActive: true, status: 1, caseStatus: 'HOSPITALIZED' } }),
+      this.prisma.child.count({ where: { isActive: true, status: 1, caseStatus: 'REUNIFIED' } }),
+      this.prisma.child.count({ where: { isActive: true, status: 1, caseStatus: 'IDENTIFIED' } }),
+      this.prisma.child.count({ where: { isActive: true, status: 1, caseStatus: 'UNIDENTIFIED' } }),
+      this.prisma.child.count({ where: { isActive: true, status: 1, caseStatus: 'IN_OBSERVATION' } }),
     ]);
     return { total, hospitalized, reunified, identified, unidentified, inObservation };
   }
